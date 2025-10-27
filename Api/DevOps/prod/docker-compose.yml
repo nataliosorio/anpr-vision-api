@@ -1,20 +1,42 @@
 version: '3.8'
 
 services:
+  # 🗄️ Base de datos PostgreSQL - PROD
+  anprvision-postgres-prod:
+    image: postgres:16
+    container_name: anprvision-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: anprvision_prod
+    ports:
+      - "5435:5432"
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    networks:
+      - network_prod
+
+  # 🌐 API principal - PROD
   anprvision-api-prod:
     container_name: anprvision-api-prod
     build:
-      context: ../..           # ruta al Dockerfile en la raíz
+      context: ../..           
       dockerfile: Dockerfile
     restart: always
     env_file:
       - .env
+    depends_on:
+      - anprvision-postgres-prod
     ports:
       - "5103:8080"
     networks:
       - network_prod
     labels:
       - com.anprvision.environment=prod
+
+volumes:
+  pgdata_prod:
 
 networks:
   network_prod:
