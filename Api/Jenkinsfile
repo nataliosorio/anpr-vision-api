@@ -5,89 +5,89 @@
 /// </summary>
 
 pipeline {
-agent any
+    agent any
 
-environment {
-    DOTNET_CLI_HOME = '/var/jenkins_home/.dotnet'
-    DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
-    DOTNET_NOLOGO = '1'
-}
+    environment {
+        DOTNET_CLI_HOME = 'C:\\jenkins\\.dotnet'
+        DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
+        DOTNET_NOLOGO = '1'
+    }
 
-stages {
+    stages {
 
-    stage('Leer entorno desde Api/.env') {
-        steps {
-            dir('Api') {
-                script {
-                    def envValue = bat(
-                        script: 'powershell -Command "(Get-Content .env | Where-Object { $_ -match \'^ENVIRONMENT=\' }) -replace \'^ENVIRONMENT=\', \'\'"',
-                        returnStdout: true
-                    ).trim()
+        stage('Leer entorno desde Api/.env') {
+            steps {
+                dir('Api') {
+                    script {
+                        // ✅ Leemos el ENVIRONMENT correctamente con PowerShell
+                        def envValue = powershell(
+                            script: "(Get-Content .env | Where-Object { \$_ -match '^ENVIRONMENT=' }) -replace '^ENVIRONMENT=', ''",
+                            returnStdout: true
+                        ).trim()
 
-                    if (envValue == '') {
-                        error "No se encontró ENVIRONMENT en Api/.env"
+                        if (!envValue) {
+                            error "❌ No se encontró ENVIRONMENT en Api/.env"
+                        }
+
+                        env.ENVIRONMENT = envValue
+                        env.ENV_DIR = "DevOps/${env.ENVIRONMENT}"
+                        env.COMPOSE_FILE = "${env.ENV_DIR}/docker-compose.yml"
+                        env.ENV_FILE = "${env.ENV_DIR}/.env"
+
+                        echo "✅ Entorno detectado: ${env.ENVIRONMENT}"
+                        echo "📄 Archivo compose: ${env.COMPOSE_FILE}"
+                        echo "📁 Archivo de entorno: ${env.ENV_FILE}"
                     }
+                }
+            }
+        }
 
-                    env.ENVIRONMENT = envValue
-                    env.ENV_DIR = "DevOps/${env.ENVIRONMENT}"
-                    env.COMPOSE_FILE = "${env.ENV_DIR}/docker-compose.yml"
-                    env.ENV_FILE = "${env.ENV_DIR}/.env"
+        stage('Restaurar dependencias') {
+            steps {
+                dir('Api') {
+                    bat '''
+                        echo Restaurando dependencias .NET...
+                        if not exist "C:\\jenkins\\dotnet" mkdir "C:\\jenkins\\dotnet"
+                        dotnet restore Web\\Web.csproj
+                    '''
+                }
+            }
+        }
 
-                    echo " Entorno detectado: ${env.ENVIRONMENT}"
-                    echo " Archivo compose: ${env.COMPOSE_FILE}"
-                    echo " Archivo de entorno: ${env.ENV_FILE}"
+        stage('Compilar proyecto') {
+            steps {
+                dir('Api') {
+                    echo '⚙️ Compilando la solución ANPR Vision...'
+                    bat 'dotnet build Web\\Web.csproj --configuration Release'
+                }
+            }
+        }
+
+        stage('Publicar y construir imagen Docker') {
+            steps {
+                dir('Api') {
+                    echo "🐳 Construyendo imagen Docker para ANPR Vision (${env.ENVIRONMENT})"
+                    bat "docker build -t anpr-vision-${env.ENVIRONMENT}:latest -f Dockerfile ."
+                }
+            }
+        }
+
+        stage('Desplegar API') {
+            steps {
+                dir('Api') {
+                    echo "🚀 Desplegando ANPR Vision para entorno: ${env.ENVIRONMENT}"
+                    bat "docker compose -f ${env.COMPOSE_FILE} --env-file ${env.ENV_FILE} up -d --build"
                 }
             }
         }
     }
 
-    stage('Restaurar dependencias') {
-        steps {
-            dir('Api') {
-                bat '''
-                    echo Restaurando dependencias .NET...
-                    if not exist "C:\\jenkins\\dotnet" mkdir "C:\\jenkins\\dotnet"
-                    dotnet restore Web\\Web.csproj
-                '''
-            }
+    post {
+        success {
+            echo "🎉 Despliegue completado correctamente para ${env.ENVIRONMENT}"
+        }
+        failure {
+            echo "💥 Error durante el despliegue en ${env.ENVIRONMENT}"
         }
     }
-
-    stage('Compilar proyecto') {
-        steps {
-            dir('Api') {
-                echo 'Compilando la solución ANPR Vision...'
-                bat 'dotnet build Web\\Web.csproj --configuration Release'
-            }
-        }
-    }
-
-    stage('Publicar y construir imagen Docker') {
-        steps {
-            dir('Api') {
-                echo "Construyendo imagen Docker para ANPR Vision (${env.ENVIRONMENT})"
-                bat "docker build -t anpr-vision-${env.ENVIRONMENT}:latest -f Dockerfile ."
-            }
-        }
-    }
-
-    stage('Desplegar API') {
-        steps {
-            dir('Api') {
-                echo "Desplegando ANPR Vision para entorno: ${env.ENVIRONMENT}"
-                bat "docker compose -f ${env.COMPOSE_FILE} --env-file ${env.ENV_FILE} up -d --build"
-            }
-        }
-    }
-}
-
-post {
-    success {
-        echo "Despliegue completado correctamente para ${env.ENVIRONMENT}"
-    }
-    failure {
-        echo "Error durante el despliegue en ${env.ENVIRONMENT}"
-    }
-}
-
 }
