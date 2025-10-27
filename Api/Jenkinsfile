@@ -1,14 +1,13 @@
 /// <summary>
 /// Jenkinsfile principal para despliegue automatizado del proyecto ANPR Vision.
-/// Este pipeline detecta el entorno desde el archivo .env raíz,
-/// compila el proyecto .NET 9 y ejecuta el docker-compose correspondiente dentro de la carpeta DevOps/{entorno}.
+/// Adaptado para ejecutarse en Jenkins sobre Windows.
 /// </summary>
 
 pipeline {
     agent any
 
     environment {
-        DOTNET_CLI_HOME = '/var/jenkins_home/.dotnet'
+        DOTNET_CLI_HOME = 'C:\\jenkins\\dotnet'
         DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
         DOTNET_NOLOGO = '1'
     }
@@ -18,16 +17,17 @@ pipeline {
         stage('Leer entorno desde .env raíz') {
             steps {
                 script {
-                    def envValue = sh(script: "grep '^ENVIRONMENT=' .env | cut -d '=' -f2", returnStdout: true).trim()
+                    // Leer el valor de ENVIRONMENT desde el archivo .env usando PowerShell
+                    def envValue = bat(script: 'powershell -Command "(Get-Content .env | Where-Object { $_ -match \'^ENVIRONMENT=\' }) -replace \'^ENVIRONMENT=\', \'\'"', returnStdout: true).trim()
 
                     if (envValue == '') {
                         error "No se encontró ENVIRONMENT en el archivo .env raíz"
                     }
 
                     env.ENVIRONMENT = envValue
-                    env.ENV_DIR = "DevOps/${env.ENVIRONMENT}"
-                    env.COMPOSE_FILE = "${env.ENV_DIR}/docker-compose.yml"
-                    env.ENV_FILE = "${env.ENV_DIR}/.env"
+                    env.ENV_DIR = "DevOps\\${env.ENVIRONMENT}"
+                    env.COMPOSE_FILE = "${env.ENV_DIR}\\docker-compose.yml"
+                    env.ENV_FILE = "${env.ENV_DIR}\\.env"
 
                     echo "Entorno detectado: ${env.ENVIRONMENT}"
                     echo "Archivo compose: ${env.COMPOSE_FILE}"
@@ -37,38 +37,26 @@ pipeline {
         }
 
         stage('Restaurar dependencias') {
-            agent {
-                docker {
-                    image 'mcr.microsoft.com/dotnet/sdk:9.0'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
-                }
-            }
             steps {
-                sh '''
-                    echo "Restaurando dependencias .NET..."
-                    mkdir -p $DOTNET_CLI_HOME
-                    chmod -R 777 $DOTNET_CLI_HOME
-
-                    # Restaurar usando el proyecto principal
-                    dotnet restore Web/Web.csproj
+                bat '''
+                    echo Restaurando dependencias .NET...
+                    if not exist "%DOTNET_CLI_HOME%" mkdir "%DOTNET_CLI_HOME%"
+                    dotnet restore Web\\Web.csproj
                 '''
             }
         }
 
         stage('Compilar proyecto') {
-            agent {
-                docker { image 'mcr.microsoft.com/dotnet/sdk:9.0' }
-            }
             steps {
                 echo 'Compilando la solución ANPR Vision...'
-                sh 'dotnet build Web/Web.csproj --configuration Release'
+                bat 'dotnet build Web\\Web.csproj --configuration Release'
             }
         }
 
         stage('Publicar y construir imagen Docker') {
             steps {
                 echo "Construyendo imagen Docker para ANPR Vision (${env.ENVIRONMENT})"
-                sh """
+                bat """
                     docker build -t anpr-vision-${env.ENVIRONMENT}:latest -f Dockerfile .
                 """
             }
@@ -77,8 +65,7 @@ pipeline {
         stage('Desplegar API') {
             steps {
                 echo "Desplegando ANPR Vision para entorno: ${env.ENVIRONMENT}"
-
-                sh """
+                bat """
                     docker compose -f ${env.COMPOSE_FILE} --env-file ${env.ENV_FILE} up -d --build
                 """
             }
@@ -87,10 +74,10 @@ pipeline {
 
     post {
         success {
-            echo "Despliegue completado correctamente para ${env.ENVIRONMENT}"
+            echo "✅ Despliegue completado correctamente para ${env.ENVIRONMENT}"
         }
         failure {
-            echo "Error durante el despliegue en ${env.ENVIRONMENT}"
+            echo "❌ Error durante el despliegue en ${env.ENVIRONMENT}"
         }
     }
 }
