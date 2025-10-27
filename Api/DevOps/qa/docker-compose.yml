@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  anprvision-api-qa:
+    container_name: anprvision-api-qa
+    build:
+      context: ../..      # raíz del proyecto
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "5101:8080"
+    networks:
+      - network_qa
+    labels:
+      - com.anprvision.environment=qa
+
+networks:
+  network_qa:
+    external: true

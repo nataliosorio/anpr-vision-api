@@ -1,39 +1,52 @@
-# ---- Build .NET 9 ----
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+# ---------- build stage ----------
+FROM ubuntu:22.04 AS build
+
+# Instalar dependencias básicas y .NET SDK 9.0
+RUN apt-get update && apt-get install -y wget apt-transport-https software-properties-common \
+    && wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
+    && dpkg -i packages-microsoft-prod.deb \
+    && apt-get update && apt-get install -y dotnet-sdk-9.0
+
 WORKDIR /src
 
-# Copia .csproj por proyecto
-COPY ./Entity/Entity.csproj ./Entity/
-COPY ./Data/Data.csproj ./Data/
-COPY ./Business/Business.csproj ./Business/
-COPY ./Utilities/Utilities.csproj ./Utilities/
-COPY ./Diagram/Diagram.csproj ./Diagram/
-COPY ./Web/Web.csproj ./Web/
+# Copiar la solución principal
+COPY SecurityModel.sln ./
 
-RUN dotnet restore ./Web/Web.csproj
+# Copiar los proyectos (cada .csproj debe existir en su respectiva carpeta)
+COPY Web/Web.csproj Web/
+COPY Business/Business.csproj Business/
+COPY Data/Data.csproj Data/
+COPY Entity/Entity.csproj Entity/
+COPY Infrastructure/Infrastructure.csproj Infrastructure/
+COPY Utilities/Utilities.csproj Utilities/
+COPY Diagram/Diagram.csproj Diagram/
 
-# Copia el resto del código
-COPY ./Entity ./Entity
-COPY ./Data ./Data
-COPY ./Business ./Business
-COPY ./Utilities ./Utilities
-COPY ./Diagram ./Diagram
-COPY ./Web ./Web
+# Restaurar dependencias del proyecto principal
+RUN dotnet restore Web/Web.csproj
 
-RUN dotnet publish ./Web/Web.csproj -c Release -o /out
+# Copiar el resto del código fuente
+COPY . .
 
-# ---- Runtime .NET 9 ----
-FROM mcr.microsoft.com/dotnet/aspnet:9.0
+# Compilar y publicar el proyecto principal en modo Release
+RUN dotnet publish Web/Web.csproj -c Release -o /app/publish
+
+# ---------- runtime stage ----------
+FROM ubuntu:22.04 AS final
+
+# Instalar solo el runtime de .NET 9.0
+RUN apt-get update && apt-get install -y wget apt-transport-https software-properties-common \
+    && wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
+    && dpkg -i packages-microsoft-prod.deb \
+    && apt-get update && apt-get install -y aspnetcore-runtime-9.0
+
 WORKDIR /app
-COPY --from=build /out/ ./
+ENV ASPNETCORE_URLS=http://+:8080 DOTNET_RUNNING_IN_CONTAINER=true
 
-# Copiar el entrypoint (espera DB) y hacerlo ejecutable
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Copiar los archivos publicados desde la fase anterior
+COPY --from=build /app/publish .
 
-ENV ASPNETCORE_URLS=http://0.0.0.0:5000
-ENV ASPNETCORE_ENVIRONMENT=Production
-EXPOSE 5000
+# Exponer el puerto para el contenedor
+EXPOSE 8080
 
-# Use el entrypoint en lugar de lanzar dotnet directamente
-ENTRYPOINT ["/entrypoint.sh"]
+# Punto de entrada
+ENTRYPOINT ["dotnet", "Web.dll"]
