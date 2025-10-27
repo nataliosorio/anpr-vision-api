@@ -7,7 +7,6 @@
 pipeline {
 agent any
 
-```
 environment {
     DOTNET_CLI_HOME = '/var/jenkins_home/.dotnet'
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
@@ -90,6 +89,5 @@ post {
         echo "Error durante el despliegue en ${env.ENVIRONMENT}"
     }
 }
-```
 
 }
