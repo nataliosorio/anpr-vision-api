@@ -18,4 +18,4 @@ services:
 
 networks:
   network_staging:
-    external: true
+    driver: bridge

@@ -18,4 +18,4 @@ services:
 
 networks:
   network_qa:
-    external: true
+    driver: bridge

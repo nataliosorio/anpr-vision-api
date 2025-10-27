@@ -18,4 +18,4 @@ services:
 
 networks:
   network_develop:
-    external: true
+    driver: bridge
