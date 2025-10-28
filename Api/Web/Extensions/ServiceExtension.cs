@@ -6,6 +6,7 @@ using Business.Implementations.Operational;
 using Business.Implementations.Parameter;
 using Business.Implementations.Security;
 using Business.Implementations.Security.Authentication;
+using Business.Implementations.Security.Authentication.Interfaces;
 using Business.Implementations.Security.PasswordRecovery;
 using Business.Interfaces;
 using Business.Interfaces.Dashboard;
@@ -22,6 +23,7 @@ using Data.Implementations.Menu;
 using Data.Implementations.Operational;
 using Data.Implementations.Parameter;
 using Data.Implementations.Security;
+using Data.Implementations.Security.Authentication;
 using Data.Interfaces;
 using Data.Interfaces.Dashboard;
 using Data.Interfaces.Menu;
@@ -155,6 +157,8 @@ namespace Web.Extensions
 
             services.AddScoped<IPasswordRecoveryBusiness, PasswordRecoveryBusiness>();
 
+            services.AddScoped<IUserVerificationCodeData, UserVerificationCodeData>();
+            services.AddScoped<IUserVerificationBusiness, UserVerificationBusiness>();
 
 
 
