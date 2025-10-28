@@ -24,7 +24,6 @@ namespace Web.Controllers.Implementations.Security.Authentication
             _logger = logger;
         }
 
-        // Paso 1: Login con 2FA
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
@@ -32,7 +31,6 @@ namespace Web.Controllers.Implementations.Security.Authentication
             return result.Success ? Ok(result) : Unauthorized(result);
         }
 
-        // Paso 2: Verificar OTP y generar token
         [HttpPost("verify-otp")]
         public async Task<IActionResult> VerifyOtp([FromBody] VerificationRequestDto dto)
         {
@@ -40,7 +38,6 @@ namespace Web.Controllers.Implementations.Security.Authentication
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        // Paso 3: Seleccionar parking
         [Authorize]
         [HttpPost("select-parking")]
         public async Task<IActionResult> SelectParking([FromBody] ParkingSelectionDto dto)
