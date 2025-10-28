@@ -1,21 +1,43 @@
 version: '3.8'
 
 services:
+  # 🗄️ Base de datos PostgreSQL - DEVELOP
+  anprvision-postgres-develop:
+    image: postgres:16
+    container_name: anprvision-postgres-develop
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: anprvision_develop
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_develop:/var/lib/postgresql/data
+    networks:
+      - network_develop
+
+  # 🌐 API principal - DEVELOP
   anprvision-api-develop:
     container_name: anprvision-api-develop
     build:
-      context: ../..         # va 2 niveles arriba (raíz del proyecto)
+      context: ../..         # raíz del proyecto
       dockerfile: Dockerfile
     restart: always
     env_file:
       - .env
+    depends_on:
+      - anprvision-postgres-develop
     ports:
       - "5100:8080"
     networks:
-      - network_develop      # red externa compartida con la DB
+      - network_develop
     labels:
       - com.anprvision.environment=develop
 
+volumes:
+  pgdata_develop:
+
 networks:
   network_develop:
-    external: true
+    driver: bridge
