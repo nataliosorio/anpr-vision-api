@@ -121,4 +121,21 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+//  Crear base y ejecutar migraciones automáticamente
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    try
+    {
+        Console.WriteLine("Ejecutando migraciones pendientes...");
+        db.Database.Migrate();
+        Console.WriteLine("Migraciones aplicadas correctamente.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Error aplicando migraciones: {ex.Message}");
+    }
+}
+
+
 app.Run();
