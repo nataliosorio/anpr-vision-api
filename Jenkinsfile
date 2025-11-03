@@ -1,9 +1,3 @@
-/// <summary>
-/// Jenkinsfile principal para despliegue automatizado del proyecto ANPR Vision.
-/// Este pipeline detecta el entorno desde Api/.env,
-/// compila el proyecto .NET 9 y ejecuta el docker-compose correspondiente dentro de la carpeta DevOps/{entorno}.
-/// </summary>
-
 pipeline {
     agent any
 
@@ -19,7 +13,6 @@ pipeline {
             steps {
                 dir('Api') {
                     script {
-                        // ✅ Leemos el ENVIRONMENT correctamente con PowerShell
                         def envValue = powershell(
                             script: "(Get-Content .env | Where-Object { \$_ -match '^ENVIRONMENT=' }) -replace '^ENVIRONMENT=', ''",
                             returnStdout: true
@@ -34,9 +27,13 @@ pipeline {
                         env.COMPOSE_FILE = "${env.ENV_DIR}/docker-compose.yml"
                         env.ENV_FILE = "${env.ENV_DIR}/.env"
 
+                        // Ruta del stack de bases de datos compartido
+                        env.DB_COMPOSE_FILE = "../ANPR-DB/docker-compose.yml"
+
                         echo "✅ Entorno detectado: ${env.ENVIRONMENT}"
-                        echo "📄 Archivo compose: ${env.COMPOSE_FILE}"
-                        echo "📁 Archivo de entorno: ${env.ENV_FILE}"
+                        echo "📄 Compose API: ${env.COMPOSE_FILE}"
+                        echo "📁 Env file: ${env.ENV_FILE}"
+                        echo "🗄️ Compose DB: ${env.DB_COMPOSE_FILE}"
                     }
                 }
             }
@@ -68,6 +65,20 @@ pipeline {
                 dir('Api') {
                     echo "🐳 Construyendo imagen Docker para ANPR Vision (${env.ENVIRONMENT})"
                     bat "docker build -t anpr-vision-${env.ENVIRONMENT}:latest -f Dockerfile ."
+                }
+            }
+        }
+
+        stage('Preparar red y base de datos') {
+            steps {
+                dir('Api') {
+                    bat """
+                        echo 🌐 Creando red externa compartida (si no existe)...
+                        docker network create anprvision_network || echo "red existente"
+
+                        echo 🗄️ Levantando stack de bases de datos...
+                        docker compose -f ${env.DB_COMPOSE_FILE} up -d
+                    """
                 }
             }
         }
