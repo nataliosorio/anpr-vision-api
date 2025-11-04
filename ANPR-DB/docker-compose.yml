@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  # 🗄️ PostgreSQL - DEVELOP
+  anprvision-postgres-develop:
+    image: postgres:16
+    container_name: anprvision-postgres-develop
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: anprvision_develop
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_develop:/var/lib/postgresql/data
+    networks:
+      - anprvision_network
+
+  # 🗄️ PostgreSQL - QA
+  anprvision-postgres-qa:
+    image: postgres:16
+    container_name: anprvision-postgres-qa
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: anprvision_qa
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata_qa:/var/lib/postgresql/data
+    networks:
+      - anprvision_network
+
+  # 🗄️ PostgreSQL - STAGING
+  anprvision-postgres-staging:
+    image: postgres:16
+    container_name: anprvision-postgres-staging
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: anprvision_staging
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata_staging:/var/lib/postgresql/data
+    networks:
+      - anprvision_network
+
+  # 🗄️ PostgreSQL - PROD
+  anprvision-postgres-prod:
+    image: postgres:16
+    container_name: anprvision-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: anprvision_prod
+    ports:
+      - "5435:5432"
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    networks:
+      - anprvision_network
+
+volumes:
+  pgdata_develop:
+  pgdata_qa:
+  pgdata_staging:
+  pgdata_prod:
+
+networks:
+  anprvision_network:
+    name: anprvision_network
+    driver: bridge
+    external: false

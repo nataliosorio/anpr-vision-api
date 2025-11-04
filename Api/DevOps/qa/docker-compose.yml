@@ -1,43 +1,22 @@
 version: '3.8'
 
 services:
-  # 🗄️ Base de datos PostgreSQL - QA
-  anprvision-postgres-qa:
-    image: postgres:16
-    container_name: anprvision-postgres-qa
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: anprvision_qa
-    ports:
-      - "5433:5432"      # mapeamos distinto al host
-    volumes:
-      - pgdata_qa:/var/lib/postgresql/data
-    networks:
-      - network_qa
-
   # 🌐 API principal - QA
   anprvision-api-qa:
     container_name: anprvision-api-qa
     build:
-      context: ../..      
+      context: ../..           # raíz del proyecto
       dockerfile: Dockerfile
     restart: always
     env_file:
       - .env
-    depends_on:
-      - anprvision-postgres-qa
     ports:
       - "5101:8080"
     networks:
-      - network_qa
+      - anprvision_network
     labels:
       - com.anprvision.environment=qa
 
-volumes:
-  pgdata_qa:
-
 networks:
-  network_qa:
-    driver: bridge
+  anprvision_network:
+    external: true
