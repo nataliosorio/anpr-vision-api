@@ -109,20 +109,6 @@ namespace Data.Implementations
         }
 
 
-        //public async Task<User?> GetUserByUsernameAsync(string username)
-        //{
-        //    try
-        //    {
-        //        //await AuditAsync("GetUserByUsernameAsync");
-        //        return await _context.Set<User>()
-        //            .FirstOrDefaultAsync(u => u.Username == username && u.Asset);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error al obtener usuario por nombre de usuario: {Username}", username);
-        //        throw;
-        //    }
-        //}
 
 
         public async Task<User?> GetUserByUsernameAsync(string username)
@@ -189,35 +175,6 @@ namespace Data.Implementations
         }
 
 
-        //public async Task<List<UserRoleStatusDto>> GetUserRolesAsync(int userId)
-        //{
-        //    try
-        //    {
-        //        var userRoles = await _context.Set<RolParkingUser>()
-        //            .Where(ru => ru.UserId == userId)
-        //            .Join(
-        //                _context.Set<Rol>(),
-        //                ru => ru.RolId,
-        //                r => r.Id,
-        //                (ru, r) => new UserRoleStatusDto
-        //                {
-        //                    RolUserId = ru.Id,      // ID de la tabla pivote
-        //                    RoleName = r.Name,
-        //                    Asset = ru.Asset
-        //                }
-        //            )
-        //            .ToListAsync();
-
-        //        //await AuditAsync("GetUserRolesAsync", userId);
-
-        //        return userRoles;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error al obtener roles para el usuario con ID: {UserId}", userId);
-        //        throw;
-        //    }
-        //}
 
         public async Task<List<UserRoleByParkingDto>> GetUserRolesAsync(int userId)
         {
