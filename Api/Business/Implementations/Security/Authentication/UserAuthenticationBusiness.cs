@@ -1,30 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AutoMapper;
+﻿using AutoMapper;
+using Business.Implementations.Security.Authentication.Interfaces;
 using Business.Interfaces.Security.Authentication;
 using Data.Interfaces;
 using Data.Interfaces.Parameter;
-using Data.Interfaces.Security;
 using Entity.Dtos.Login;
 using Entity.Dtos.Security;
+using Entity.Models;
 using Microsoft.Extensions.Logging;
 using Utilities.Interfaces;
 
 namespace Business.Implementations.Security.Authentication
 {
     /// <summary>
-    /// Implementa la lógica de autenticación de usuarios:
-    /// - Valida credenciales
-    /// - Verifica hash de contraseña (BCrypt)
-    /// - Genera el token JWT
-    /// - Mapea la información del usuario a un DTO de respuesta
+    /// Maneja autenticación con flujo de dos pasos (2FA por correo).
+    /// 1. Valida usuario y contraseña.
+    /// 2. Envía código OTP al correo.
+    /// 3. Verifica código y genera token JWT con toda la información de usuario.
     /// </summary>
     public class UserAuthenticationBusiness : IUserAuthenticationBusiness
     {
         private readonly IUserData _userData;
+        private readonly IUserVerificationBusiness _verificationBusiness;
         private readonly IMapper _mapper;
         private readonly ILogger<UserAuthenticationBusiness> _logger;
         private readonly IJwtAuthenticationService _jwtService;
@@ -33,6 +29,7 @@ namespace Business.Implementations.Security.Authentication
 
         public UserAuthenticationBusiness(
             IUserData userData,
+            IUserVerificationBusiness verificationBusiness,
             IMapper mapper,
             ILogger<UserAuthenticationBusiness> logger,
             IJwtAuthenticationService jwtService,
@@ -40,6 +37,7 @@ namespace Business.Implementations.Security.Authentication
             IClientData clientData)
         {
             _userData = userData;
+            _verificationBusiness = verificationBusiness;
             _mapper = mapper;
             _logger = logger;
             _jwtService = jwtService;
@@ -47,72 +45,65 @@ namespace Business.Implementations.Security.Authentication
             _clientData = clientData;
         }
 
-        /// <summary>
-        /// Autentica un usuario validando sus credenciales y generando un token JWT si son correctas.
-        /// </summary>
-        /// <param name="username">Nombre de usuario.</param>
-        /// <param name="password">Contraseña ingresada (texto plano).</param>
-        /// <returns>
-        /// Un <see cref="UserResponseDto"/> con la información del usuario y el token generado,
-        /// o <c>null</c> si la autenticación falla.
-        /// </returns>
-        public async Task<UserResponseDto?> AuthenticateAsync(string username, string password)
+        // =====================================
+        // 🔹 Paso 1: Validar credenciales y enviar código
+        // =====================================
+        public async Task<ApiResponse<object>> LoginWith2FAAsync(string username, string password)
         {
-            // Validar parámetros de entrada
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
-            {
-                _logger.LogWarning("Intento de autenticación con username o password vacío");
-                return null;
-            }
-            // Buscar usuario por nombre de usuario
+                return new ApiResponse<object>(null, false, "Datos incompletos", null);
+
             var user = await _userData.GetUserByUsernameAsync(username);
             if (user == null)
-            {
-                _logger.LogWarning("Usuario no encontrado: {Username}", username);
-                return null;
-            }
-            // Validar formato del hash (debe iniciar con '$2' si es BCrypt)
-            if (string.IsNullOrWhiteSpace(user.Password) || !user.Password.StartsWith("$2"))
-            {
-                _logger.LogWarning("Formato de hash inválido para usuario {Username}", username);
-                return null;
-            }
-            // Verificar contraseña usando el servicio de hashing
+                return new ApiResponse<object>(null, false, "Usuario no encontrado", null);
+
             if (!_passwordHasher.VerifyPassword(user.Password, password))
-            {
-                _logger.LogWarning("Contraseña incorrecta para {Username}", username);
-                return null;
-            }
-            // Obtener roles asociados al usuario
-            //var roleNames = await _userData.GetUserRoleAsync(user.Id);
+                return new ApiResponse<object>(null, false, "Contraseña incorrecta", null);
 
-            // Obtener roles detallados (por parking)
-            //var rolesByParking = await _userData.GetUserRoleAsync(user.Id);
+            // Enviar código OTP
+            await _verificationBusiness.GenerateAndSendCodeAsync(user.Id);
+            _logger.LogInformation("Código OTP enviado a {Email}", user.Email);
+
+            return new ApiResponse<object>(
+                new { userId = user.Id },
+                true,
+                "Credenciales válidas. Se envió un código de verificación al correo registrado.",
+                null
+            );
+        }
+
+        // =====================================
+        // 🔹 Paso 2: Verificar código y generar token con datos completos
+        // =====================================
+        public async Task<ApiResponse<UserResponseDto>> VerifyOtpAndGenerateTokenAsync(VerificationRequestDto dto)
+        {
+            var verificationResult = await _verificationBusiness.VerifyCodeAsync(dto);
+            if (!verificationResult.Success)
+                return new ApiResponse<UserResponseDto>(null, false, verificationResult.Message, null);
+
+            var user = await _userData.GetById(dto.UserId);
+            if (user == null)
+                return new ApiResponse<UserResponseDto>(null, false, "Usuario no encontrado", null);
+
+            // Obtener roles por parking y roles únicos
             var rolesByParking = await _userData.GetUserRolesAsync(user.Id);
-
-
-            // Obtener solo los nombres de roles únicos para el JWT
             var roleNames = rolesByParking.Select(r => r.RoleName).Distinct().ToList();
 
-            // Mapear entidad a DTO de respuesta
+            // Mapear entidad a DTO
             var response = _mapper.Map<UserResponseDto>(user);
-            //response.Roles = roleNames;
+            response.UserId = user.Id;
+            response.Username = user.Username;
             response.Roles = roleNames;
             response.RolesByParking = rolesByParking;
-
-            response.UserId = user.Id;
-            // Generar token JWT con la información del usuario y roles
-            response.Token = _jwtService.GenerarToken(user, roleNames);
-            // Información adicional de la persona asociada
             response.PersonId = user.PersonId;
             response.FirstName = user.Person?.FirstName;
             response.LastName = user.Person?.LastName;
 
-            // Asociar cliente si la persona tiene relación con uno
+            // Asociar cliente si aplica
             if (user.PersonId > 0)
             {
                 var client = await _clientData.GetClientWithVehiclesByPersonIdAsync(user.PersonId);
-                if (client != null && client.PersonId == user.PersonId)
+                if (client != null)
                 {
                     response.Client = new ClientLiteDto
                     {
@@ -121,16 +112,31 @@ namespace Business.Implementations.Security.Authentication
                     };
                 }
             }
-            // Retornar el resultado final con el token y los datos del usuario
-            return response;
+
+            // ✅ Generar token JWT
+            response.Token = _jwtService.GenerarToken(user, roleNames);
+
+            // Retornar igual que antes
+            return new ApiResponse<UserResponseDto>(
+                response,
+                true,
+                "Inicio de sesión exitoso",
+                null
+            );
         }
 
+        // =====================================
+        // 🔹 Validación de acceso a parking
+        // =====================================
         public async Task<bool> ValidateUserParkingAccessAsync(int userId, int parkingId)
         {
             var rolesByParking = await _userData.GetUserRolesAsync(userId);
             return rolesByParking.Any(r => r.ParkingId == parkingId);
         }
 
+        // =====================================
+        // 🔹 Generar nuevo token con parkingId embebido
+        // =====================================
         public async Task<string> GenerateTokenWithParkingAsync(int userId, int parkingId)
         {
             var user = await _userData.GetById(userId);
@@ -144,11 +150,7 @@ namespace Business.Implementations.Security.Authentication
                 .Distinct()
                 .ToList();
 
-            var extraClaims = new Dictionary<string, string>
-    {
-        { "parkingId", parkingId.ToString() }
-    };
-
+            var extraClaims = new Dictionary<string, string> { { "parkingId", parkingId.ToString() } };
             return _jwtService.GenerarToken(user, roleNames, extraClaims);
         }
     }

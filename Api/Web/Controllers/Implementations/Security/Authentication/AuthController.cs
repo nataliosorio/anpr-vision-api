@@ -1,10 +1,13 @@
 ﻿using System.Security.Claims;
+using Business.Implementations.Security.Authentication.Interfaces;
 using Business.Interfaces.Security.Authentication;
+using Data.Interfaces;
 using Entity.Dtos.Login;
 using Entity.Dtos.Security;
 using Entity.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Utilities.Interfaces;
 
 namespace Web.Controllers.Implementations.Security.Authentication
 {
@@ -22,69 +25,27 @@ namespace Web.Controllers.Implementations.Security.Authentication
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<ApiResponse<UserResponseDto>>> Login([FromBody] LoginRequestDto request)
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new ApiResponse<UserResponseDto>(
-                    null, false, "Datos inválidos",
-                    ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()));
-            }
+            var result = await _authBusiness.LoginWith2FAAsync(request.Username, request.Password);
+            return result.Success ? Ok(result) : Unauthorized(result);
+        }
 
-            try
-            {
-                var user = await _authBusiness.AuthenticateAsync(request.Username, request.Password);
-                if (user == null)
-                    return Unauthorized(new ApiResponse<UserResponseDto>(null, false, "Credenciales incorrectas", null));
-
-                return Ok(new ApiResponse<UserResponseDto>(user, true, "Inicio de sesión exitoso", null));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error en autenticación");
-                return StatusCode(500, new ApiResponse<UserResponseDto>(null, false, "Error interno del servidor", null));
-            }
+        [HttpPost("verify-otp")]
+        public async Task<IActionResult> VerifyOtp([FromBody] VerificationRequestDto dto)
+        {
+            var result = await _authBusiness.VerifyOtpAndGenerateTokenAsync(dto);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [Authorize]
         [HttpPost("select-parking")]
-        public async Task<ActionResult<ApiResponse<object>>> SelectParking([FromBody] ParkingSelectionDto request)
+        public async Task<IActionResult> SelectParking([FromBody] ParkingSelectionDto dto)
         {
-            try
-            {
-                if (request.ParkingId <= 0)
-                    return BadRequest(new ApiResponse<object>(null, false, "ParkingId inválido", null));
-
-                //  Obtener ID del usuario autenticado desde el token actual
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userIdClaim))
-                    return Unauthorized(new ApiResponse<object>(null, false, "Usuario no autenticado", null));
-
-                int userId = int.Parse(userIdClaim);
-
-                // Validar que el usuario tenga acceso a ese parking
-                bool hasAccess = await _authBusiness.ValidateUserParkingAccessAsync(userId, request.ParkingId);
-                if (!hasAccess)
-                    return Forbid();
-
-                // Generar nuevo token con el parkingId embebido
-                var newToken = await _authBusiness.GenerateTokenWithParkingAsync(userId, request.ParkingId);
-
-                return Ok(new ApiResponse<object>(
-                    new { token = newToken },
-                    true,
-                    "Token actualizado con parking seleccionado",
-                    null
-                ));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error al seleccionar parking");
-                return StatusCode(500, new ApiResponse<object>(null, false, "Error interno del servidor", null));
-            }
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var token = await _authBusiness.GenerateTokenWithParkingAsync(userId, dto.ParkingId);
+            return Ok(new ApiResponse<object>(new { token }, true, "Token actualizado", null));
         }
-
-
-
     }
+
 }

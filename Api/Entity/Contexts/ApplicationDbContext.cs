@@ -3,6 +3,7 @@ using Entity.Contexts.Interceptors;
 using Entity.Models.Operational;
 using Entity.Models.Parameter;
 using Entity.Models.Security;
+using Entity.Models.Security.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
@@ -77,6 +78,8 @@ namespace Entity.Contexts
         public DbSet<Notification> Notifications { get; set; }
 
         public DbSet<PasswordReset> PasswordResets { get; set; }
+
+        public DbSet<UserVerificationCode> UserVerificationCode { get; set; }
 
         //public DbSet<PersonParking> PersonParking { get; set; }
 
