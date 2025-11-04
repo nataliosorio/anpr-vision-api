@@ -9,6 +9,9 @@ pipeline {
 
     stages {
 
+        // =======================================================
+        // 1️⃣ Leer entorno desde Api/.env
+        // =======================================================
         stage('Leer entorno desde Api/.env') {
             steps {
                 dir('Api') {
@@ -26,40 +29,54 @@ pipeline {
                         env.ENV_DIR = "DevOps/${env.ENVIRONMENT}"
                         env.COMPOSE_FILE = "${env.ENV_DIR}/docker-compose.yml"
                         env.ENV_FILE = "${env.ENV_DIR}/.env"
-
-                        // Ruta del stack de bases de datos compartido
                         env.DB_COMPOSE_FILE = "../ANPR-DB/docker-compose.yml"
 
-                        echo "✅ Entorno detectado: ${env.ENVIRONMENT}"
-                        echo "📄 Compose API: ${env.COMPOSE_FILE}"
-                        echo "📁 Env file: ${env.ENV_FILE}"
-                        echo "🗄️ Compose DB: ${env.DB_COMPOSE_FILE}"
+                        echo """
+                        ✅ Entorno detectado: ${env.ENVIRONMENT}
+                        📄 Compose API: ${env.COMPOSE_FILE}
+                        📁 Env file: ${env.ENV_FILE}
+                        🗄️ Compose DB: ${env.DB_COMPOSE_FILE}
+                        """
                     }
                 }
             }
         }
 
+        // =======================================================
+        // 2️⃣ Restaurar dependencias
+        // =======================================================
         stage('Restaurar dependencias') {
             steps {
                 dir('Api') {
                     bat '''
-                        echo Restaurando dependencias .NET...
+                        echo 🔧 Restaurando dependencias .NET...
                         if not exist "C:\\jenkins\\dotnet" mkdir "C:\\jenkins\\dotnet"
-                        dotnet restore Web\\Web.csproj
+
+                        echo 🧹 Limpiando caché NuGet...
+                        dotnet nuget locals all --clear
+
+                        echo 🚀 Ejecutando restore (sin procesos paralelos)...
+                        dotnet restore Web\\Web.csproj --disable-parallel
                     '''
                 }
             }
         }
 
+        // =======================================================
+        // 3️⃣ Compilar proyecto
+        // =======================================================
         stage('Compilar proyecto') {
             steps {
                 dir('Api') {
                     echo '⚙️ Compilando la solución ANPR Vision...'
-                    bat 'dotnet build Web\\Web.csproj --configuration Release'
+                    bat 'dotnet build Web\\Web.csproj --configuration Release --no-restore'
                 }
             }
         }
 
+        // =======================================================
+        // 4️⃣ Publicar y construir imagen Docker
+        // =======================================================
         stage('Publicar y construir imagen Docker') {
             steps {
                 dir('Api') {
@@ -69,6 +86,9 @@ pipeline {
             }
         }
 
+        // =======================================================
+        // 5️⃣ Preparar red y base de datos
+        // =======================================================
         stage('Preparar red y base de datos') {
             steps {
                 dir('Api') {
@@ -83,6 +103,9 @@ pipeline {
             }
         }
 
+        // =======================================================
+        // 6️⃣ Desplegar API
+        // =======================================================
         stage('Desplegar API') {
             steps {
                 dir('Api') {
