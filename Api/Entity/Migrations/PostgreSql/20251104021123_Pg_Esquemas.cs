@@ -6,10 +6,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
-namespace Entity.Migrations
+namespace Entity.Migrations.PostgreSql
 {
     /// <inheritdoc />
-    public partial class AddEnumStatusWithDataInitialTwo : Migration
+    public partial class Pg_Esquemas : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -20,7 +20,7 @@ namespace Entity.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Description = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
                     Asset = table.Column<bool>(type: "boolean", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: true),
                     Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false)
@@ -491,6 +491,34 @@ namespace Entity.Migrations
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_RolParkingUsers_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserVerificationCode",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    CodeHash = table.Column<string>(type: "text", nullable: false),
+                    CodeType = table.Column<string>(type: "text", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ConsumedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Attempts = table.Column<int>(type: "integer", nullable: false),
+                    IsUsed = table.Column<bool>(type: "boolean", nullable: false),
+                    Asset = table.Column<bool>(type: "boolean", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserVerificationCode", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserVerificationCode_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -972,6 +1000,11 @@ namespace Entity.Migrations
                 column: "PersonId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserVerificationCode_UserId",
+                table: "UserVerificationCode",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Vehicles_ClientId",
                 table: "Vehicles",
                 column: "ClientId");
@@ -1019,6 +1052,9 @@ namespace Entity.Migrations
 
             migrationBuilder.DropTable(
                 name: "RolParkingUsers");
+
+            migrationBuilder.DropTable(
+                name: "UserVerificationCode");
 
             migrationBuilder.DropTable(
                 name: "Modules");
