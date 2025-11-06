@@ -1,7 +1,4 @@
-version: '3.9'
-
 services:
-  # 🌐 Backend principal ANPR Vision - DEVELOP
   anprvision-api-develop:
     container_name: anprvision-api-develop
     image: anprvision-api-develop:latest
@@ -12,13 +9,17 @@ services:
     env_file:
       - .env
     ports:
-      - "5100:8080"        # ← Puerto único para develop
+      - "5100:8080"
     networks:
       - anpr-net-develop
     depends_on:
-      - anprvision-postgres-develop
+      - postgres_external
     labels:
       - com.anprvision.environment=develop
+
+  postgres_external:
+    external: true
+    name: anprvision-postgres-develop
 
 networks:
   anpr-net-develop:
