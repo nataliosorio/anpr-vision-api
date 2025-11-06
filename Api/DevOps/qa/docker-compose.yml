@@ -1,22 +1,24 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  # 🌐 API principal - QA
+  # 🌐 Backend principal ANPR Vision - QA
   anprvision-api-qa:
     container_name: anprvision-api-qa
+    image: anprvision-api-qa:latest
     build:
-      context: ../..           # raíz del proyecto
+      context: ../..
       dockerfile: Dockerfile
-    restart: always
+    restart: unless-stopped
     env_file:
       - .env
     ports:
-      - "5101:8080"
+      - "5200:8080"        # ← Puerto único para QA
     networks:
-      - anprvision_network
+      - anpr-net-qa
     labels:
       - com.anprvision.environment=qa
 
 networks:
-  anprvision_network:
+  anpr-net-qa:
     external: true
+
