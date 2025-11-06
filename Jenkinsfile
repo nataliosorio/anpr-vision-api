@@ -89,8 +89,8 @@ pipeline {
 
                     if (env.ENVIRONMENT == 'develop' || env.ENVIRONMENT == 'qa' || env.ENVIRONMENT == 'staging') {
                         sh '''
-                            echo "🗄️ Levantando stack local de base de datos..."
-                            docker compose -f $DB_COMPOSE_FILE up -d
+                            echo "🗄️ Levantando stack local de base de datos para entorno $ENVIRONMENT..."
+                            docker compose -f $DB_COMPOSE_FILE up -d anprvision-postgres-$ENVIRONMENT
                         '''
                     } else {
                         echo "🛑 Saltando base de datos (usa RDS en producción)"
