@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+      docker {
+        image 'mcr.microsoft.com/dotnet/sdk:9.0'
+        args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
+       }
+    }
 
     environment {
         DOCKER_CLI_HINTS = "off"
