@@ -1,22 +1,26 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  # 🌐 API principal - STAGING
+  # 🌐 Backend principal ANPR Vision - STAGING
   anprvision-api-staging:
     container_name: anprvision-api-staging
+    image: anprvision-api-staging:latest
     build:
-      context: ../..            # raíz del proyecto
+      context: ../..
       dockerfile: Dockerfile
-    restart: always
+    restart: unless-stopped
     env_file:
       - .env
     ports:
-      - "5102:8080"
+      - "5300:8080"        # ← Puerto único para Staging
     networks:
-      - anprvision_network
+      - anpr-net-staging
+    depends_on:
+      - anprvision-postgres-staging
     labels:
       - com.anprvision.environment=staging
 
 networks:
-  anprvision_network:
+  anpr-net-staging:
     external: true
+
