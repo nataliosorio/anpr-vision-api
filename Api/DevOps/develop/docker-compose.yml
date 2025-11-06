@@ -12,14 +12,8 @@ services:
       - "5100:8080"
     networks:
       - anpr-net-develop
-    depends_on:
-      - postgres_external
     labels:
       - com.anprvision.environment=develop
-
-  postgres_external:
-    external: true
-    name: anprvision-postgres-develop
 
 networks:
   anpr-net-develop:
