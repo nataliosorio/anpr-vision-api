@@ -1,6 +1,5 @@
 pipeline {
     agent any
-
     environment {
         DOCKER_CLI_HINTS = "off"
         DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
@@ -8,6 +7,16 @@ pipeline {
     }
 
     stages {
+    
+        stage('Permisos workspace') {
+          steps {
+            sh '''
+              echo "🔧 Corrigiendo permisos del workspace..."
+              sudo chmod -R 777 $WORKSPACE || chmod -R 777 $WORKSPACE
+            '''
+          }
+        }
+
 
         // =====================================================
         // 1️⃣ Leer entorno desde Api/.env
@@ -52,34 +61,6 @@ pipeline {
             }
         }
 
-        // =====================================================
-        // 2️⃣ Restaurar dependencias .NET
-        // =====================================================
-        stage('Restaurar dependencias') {
-            steps {
-                dir('Api') {
-                    sh '''
-                        echo "🔧 Restaurando dependencias .NET..."
-                        dotnet nuget locals all --clear
-                        dotnet restore Web/Web.csproj --disable-parallel
-                    '''
-                }
-            }
-        }
-
-        // =====================================================
-        // 3️⃣ Compilar proyecto .NET
-        // =====================================================
-        stage('Compilar proyecto') {
-            steps {
-                dir('Api') {
-                    sh '''
-                        echo "⚙️ Compilando la solución ANPR Vision..."
-                        dotnet build Web/Web.csproj --configuration Release --no-restore
-                    '''
-                }
-            }
-        }
 
         // =====================================================
         // 4️⃣ Construir imagen Docker
@@ -108,8 +89,8 @@ pipeline {
 
                     if (env.ENVIRONMENT == 'develop' || env.ENVIRONMENT == 'qa' || env.ENVIRONMENT == 'staging') {
                         sh '''
-                            echo "🗄️ Levantando stack local de base de datos..."
-                            docker compose -f $DB_COMPOSE_FILE up -d
+                            echo "🗄️ Levantando stack local de base de datos para entorno $ENVIRONMENT..."
+                            docker compose -f $DB_COMPOSE_FILE up -d anprvision-postgres-$ENVIRONMENT
                         '''
                     } else {
                         echo "🛑 Saltando base de datos (usa RDS en producción)"
@@ -123,7 +104,6 @@ pipeline {
         // =====================================================
         stage('Desplegar API') {
             steps {
-                dir('Api') {
                     script {
                         if (env.ENVIRONMENT == 'prod') {
                             echo "🚀 Despliegue remoto en AWS (producción)"
@@ -153,7 +133,6 @@ pipeline {
                             '''
                         }
                     }
-                }
             }
         }
     }

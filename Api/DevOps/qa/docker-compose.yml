@@ -15,8 +15,6 @@ services:
       - "5200:8080"        # ← Puerto único para QA
     networks:
       - anpr-net-qa
-    depends_on:
-      - anprvision-postgres-qa
     labels:
       - com.anprvision.environment=qa
 

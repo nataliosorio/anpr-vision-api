@@ -15,8 +15,6 @@ services:
       - "5300:8080"        # ← Puerto único para Staging
     networks:
       - anpr-net-staging
-    depends_on:
-      - anprvision-postgres-staging
     labels:
       - com.anprvision.environment=staging
 
