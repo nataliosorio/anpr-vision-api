@@ -1,22 +1,26 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  # 🌐 API principal - DEVELOP
+  # 🌐 Backend principal ANPR Vision - DEVELOP
   anprvision-api-develop:
     container_name: anprvision-api-develop
+    image: anprvision-api-develop:latest
     build:
-      context: ../..         # raíz del proyecto
+      context: ../..
       dockerfile: Dockerfile
-    restart: always
+    restart: unless-stopped
     env_file:
       - .env
     ports:
-      - "5100:8080"
+      - "5100:8080"        # ← Puerto único para develop
     networks:
-      - anprvision_network
+      - anpr-net-develop
+    depends_on:
+      - anprvision-postgres-develop
     labels:
       - com.anprvision.environment=develop
 
 networks:
-  anprvision_network:
+  anpr-net-develop:
     external: true
+
