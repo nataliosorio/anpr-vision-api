@@ -7,6 +7,16 @@ pipeline {
     }
 
     stages {
+    
+        stage('Permisos workspace') {
+          steps {
+            sh '''
+              echo "🔧 Corrigiendo permisos del workspace..."
+              sudo chmod -R 777 $WORKSPACE || chmod -R 777 $WORKSPACE
+            '''
+          }
+        }
+
 
         // =====================================================
         // 1️⃣ Leer entorno desde Api/.env
