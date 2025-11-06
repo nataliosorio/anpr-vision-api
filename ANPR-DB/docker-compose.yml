@@ -1,7 +1,9 @@
 version: "3.9"
 
 services:
+  # =========================
   # 🗄️ PostgreSQL - DEVELOP
+  # =========================
   anprvision-postgres-develop:
     image: postgres:16
     container_name: anprvision-postgres-develop
@@ -15,9 +17,11 @@ services:
     volumes:
       - pgdata_develop:/var/lib/postgresql/data
     networks:
-      - anprvision_network
+      - anpr-net-develop
 
+  # =========================
   # 🗄️ PostgreSQL - QA
+  # =========================
   anprvision-postgres-qa:
     image: postgres:16
     container_name: anprvision-postgres-qa
@@ -31,9 +35,11 @@ services:
     volumes:
       - pgdata_qa:/var/lib/postgresql/data
     networks:
-      - anprvision_network
+      - anpr-net-qa
 
+  # =========================
   # 🗄️ PostgreSQL - STAGING
+  # =========================
   anprvision-postgres-staging:
     image: postgres:16
     container_name: anprvision-postgres-staging
@@ -47,32 +53,24 @@ services:
     volumes:
       - pgdata_staging:/var/lib/postgresql/data
     networks:
-      - anprvision_network
+      - anpr-net-staging
 
-  # 🗄️ PostgreSQL - PROD
-  anprvision-postgres-prod:
-    image: postgres:16
-    container_name: anprvision-postgres-prod
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: anprvision_prod
-    ports:
-      - "5435:5432"
-    volumes:
-      - pgdata_prod:/var/lib/postgresql/data
-    networks:
-      - anprvision_network
 
+# =========================
+# Volúmenes persistentes
+# =========================
 volumes:
   pgdata_develop:
   pgdata_qa:
   pgdata_staging:
-  pgdata_prod:
 
+# =========================
+# Redes por entorno
+# =========================
 networks:
-  anprvision_network:
-    name: anprvision_network
-    driver: bridge
-    external: false
+  anpr-net-develop:
+    external: true
+  anpr-net-qa:
+    external: true
+  anpr-net-staging:
+    external: true

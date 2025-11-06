@@ -4,15 +4,18 @@
     {
         public static IServiceCollection AddCustomCors(this IServiceCollection services, IConfiguration configuration)
         {
-            var origenesPermitidos = configuration.GetValue<string>("OrigenesPermitidos")!.Split(",");
+            var origenesPermitidos = configuration.GetValue<string>("OrigenesPermitidos")?
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             services.AddCors(options =>
             {
-                options.AddDefaultPolicy(policy =>
+                options.AddPolicy("CorsPolicy", policy =>
                 {
-                    policy.WithOrigins(origenesPermitidos)
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
+                    policy
+                        .WithOrigins(origenesPermitidos ?? Array.Empty<string>())
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
                 });
             });
 
