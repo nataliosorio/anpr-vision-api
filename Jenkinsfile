@@ -1,11 +1,5 @@
 pipeline {
-    agent {
-      docker {
-        image 'mcr.microsoft.com/dotnet/sdk:9.0'
-        args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
-       }
-    }
-
+    agent any
     environment {
         DOCKER_CLI_HINTS = "off"
         DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
@@ -57,34 +51,6 @@ pipeline {
             }
         }
 
-        // =====================================================
-        // 2️⃣ Restaurar dependencias .NET
-        // =====================================================
-        stage('Restaurar dependencias') {
-            steps {
-                dir('Api') {
-                    sh '''
-                        echo "🔧 Restaurando dependencias .NET..."
-                        dotnet nuget locals all --clear
-                        dotnet restore Web/Web.csproj --disable-parallel
-                    '''
-                }
-            }
-        }
-
-        // =====================================================
-        // 3️⃣ Compilar proyecto .NET
-        // =====================================================
-        stage('Compilar proyecto') {
-            steps {
-                dir('Api') {
-                    sh '''
-                        echo "⚙️ Compilando la solución ANPR Vision..."
-                        dotnet build Web/Web.csproj --configuration Release --no-restore
-                    '''
-                }
-            }
-        }
 
         // =====================================================
         // 4️⃣ Construir imagen Docker
