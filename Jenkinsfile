@@ -104,7 +104,6 @@ pipeline {
         // =====================================================
         stage('Desplegar API') {
             steps {
-                dir('Api') {
                     script {
                         if (env.ENVIRONMENT == 'prod') {
                             echo "🚀 Despliegue remoto en AWS (producción)"
@@ -134,7 +133,6 @@ pipeline {
                             '''
                         }
                     }
-                }
             }
         }
     }
