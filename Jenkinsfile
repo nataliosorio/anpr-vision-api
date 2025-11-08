@@ -122,7 +122,7 @@ pipeline {
 
                                         echo '🐳 Desplegando stack Docker en red anpr-net-prod...'
                                         docker network create anpr-net-prod || echo 'Red ya existente'
-                                        docker compose -f Api/DevOps/prod/docker-compose.yml --env-file Api/DevOps/prod/.env up -d --build --remove-orphans
+                                        docker compose -f Api/DevOps/prod/docker-compose.yml --env-file Api/DevOps/prod/.env up -d --build --force-recreate --remove-orphans
                                     "
                                 '''
                             }
