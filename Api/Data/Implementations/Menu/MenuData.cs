@@ -80,6 +80,7 @@ namespace Data.Implementations.Menu
                         {
                             FormId = form.Id,
                             FormName = form.Name,
+                            FormUrl = form.Url,
                             Permissions = formGroup
                                 .Select(fp => fp.Permission.Name)
                                 .Distinct()

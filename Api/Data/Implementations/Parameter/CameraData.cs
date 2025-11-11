@@ -58,7 +58,7 @@ namespace Data.Implementations.Parameter
         //}
         public async Task<IEnumerable<CameraDto>> GetAllJoinAsync()
         {
-            var query = _context.Cameras.AsNoTracking();
+            var query = _context.Cameras.AsNoTracking().Where(c => c.IsDeleted == false);
 
             // ✅ Filtra automáticamente según el token
             if (_parkingContext.ParkingId.HasValue)

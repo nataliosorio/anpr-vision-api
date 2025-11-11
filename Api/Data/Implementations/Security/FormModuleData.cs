@@ -28,6 +28,8 @@ namespace Data.Implementations.Security
             return await _context.FormModule
                 .Include(x => x.Form)
                 .Include(x => x.Module)
+                 .Where(x => x.IsDeleted == false)
+                   .AsNoTracking()
                 .ToListAsync();
         }
     }

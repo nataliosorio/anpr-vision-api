@@ -37,7 +37,7 @@ namespace Data.Implementations.Parameter
         // ============================================================
         public async Task<IEnumerable<ZonesDto>> GetAllJoinAsync()
         {
-            var query = _context.Zones.AsNoTracking();
+            var query = _context.Zones.AsNoTracking().Where(z => z.IsDeleted == false);
 
             // ✅ Filtra automáticamente según el token
             if (_parkingContext.ParkingId.HasValue)

@@ -32,6 +32,8 @@ namespace Data.Implementations.Security
                 .Include(x => x.Rol)
                 .Include(x => x.Form)
                 .Include(x => x.Permission)
+                   .Where(x => x.IsDeleted == false) // 👈 solo registros activos
+        .AsNoTracking()
                 .ToListAsync();
         }
 
