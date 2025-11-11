@@ -37,6 +37,7 @@ namespace Data.Implementations.Operational
         {
             return await _context.RegisteredVehicles
                 .AsNoTracking()
+                .Where(p => p.IsDeleted == false)
                 .Select(p => new RegisteredVehiclesDto
                 {
                     // --- BaseDto ---
@@ -60,10 +61,11 @@ namespace Data.Implementations.Operational
                     Slots = p.Slots != null
 
                     ? p.Slots.Name
-                    :null
+                    : null
 
                 })
                 .ToListAsync();
+                
         }
 
         // ---------- NUEVOS MÉTODOS ----------

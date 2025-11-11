@@ -36,7 +36,8 @@ namespace Data.Implementations.Parameter
                 .Include(p => p.Parking)
                 .Include(p => p.RatesType)
                 .Include(p => p.TypeVehicle)
-                .AsNoTracking();
+                .AsNoTracking()
+             .Where(r => r.IsDeleted == false);
 
             // ✅ Filtra automáticamente por parkingId si el usuario tiene contexto
             if (_parkingContext.ParkingId.HasValue)
