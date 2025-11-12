@@ -187,9 +187,9 @@ namespace Entity.Contexts
 
             // TypeVehicle
             modelBuilder.Entity<TypeVehicle>().HasData(
-                new TypeVehicle { Id = 1, Name = "Auto", Asset = true },
+                new TypeVehicle { Id = 1, Name = "Carro", Asset = true },
                 new TypeVehicle { Id = 2, Name = "Moto", Asset = true },
-                new TypeVehicle { Id = 3, Name = "Camión", Asset = true }
+                new TypeVehicle { Id = 3, Name = "Desconocido", Asset = true }
             );
 
 
