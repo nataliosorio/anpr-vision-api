@@ -10,6 +10,7 @@ namespace Entity.Dtos.Access
     {
         public int FormId { get; set; }
         public string FormName { get; set; }
+        public string FormUrl { get; set; }
         public List<string> Permissions { get; set; } = new();
     }
 }
