@@ -895,7 +895,7 @@ namespace Entity.Migrations.PostgreSql
                             Id = 1,
                             Asset = true,
                             IsDeleted = false,
-                            Name = "Auto"
+                            Name = "Carro"
                         },
                         new
                         {
@@ -909,7 +909,7 @@ namespace Entity.Migrations.PostgreSql
                             Id = 3,
                             Asset = true,
                             IsDeleted = false,
-                            Name = "Camión"
+                            Name = "Desconocido"
                         });
                 });
 
