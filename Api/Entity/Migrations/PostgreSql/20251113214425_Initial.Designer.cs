@@ -9,11 +9,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Entity.Entity.Migrations.PostgreSql
+namespace Entity.Migrations.PostgreSql
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251112003507_MenuForm")]
-    partial class MenuForm
+    [Migration("20251113214425_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -898,7 +898,7 @@ namespace Entity.Entity.Migrations.PostgreSql
                             Id = 1,
                             Asset = true,
                             IsDeleted = false,
-                            Name = "Auto"
+                            Name = "Carro"
                         },
                         new
                         {
@@ -912,7 +912,7 @@ namespace Entity.Entity.Migrations.PostgreSql
                             Id = 3,
                             Asset = true,
                             IsDeleted = false,
-                            Name = "Camión"
+                            Name = "Desconocido"
                         });
                 });
 
