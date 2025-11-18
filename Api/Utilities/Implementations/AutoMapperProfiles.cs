@@ -156,6 +156,9 @@ namespace Utilities.Implementations
 
             CreateMap<Notification, NotificationDto>().ReverseMap();
             CreateMap<NotificationDto, Notification>().ReverseMap();
+            // Mapeo para manual-entry: RegisteredVehiclesDto -> ManualEntryResponseDto
+            CreateMap<RegisteredVehiclesDto, ManualEntryResponseDto>()
+                .ForMember(dest => dest.TicketPdfBytes, opt => opt.Ignore());
 
 
         }
