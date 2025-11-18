@@ -12,6 +12,7 @@ using Entity.Dtos.Parameter;
 using Entity.Enums;
 using Entity.Models.Operational;
 using Entity.Models.Parameter;
+using QuestPDF.Fluent;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +20,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Utilities.Exceptions;
 using Utilities.Helpers.Validators;
+using Utilities.Pdf;
 
 namespace Business.Implementations.Operational
 {
@@ -187,10 +189,43 @@ namespace Business.Implementations.Operational
             return dto;
         }
         //  Nuevo método para el registro manual por placa 
-        public async Task<RegisteredVehiclesDto> ManualRegisterVehicleEntryAsync(ManualVehicleEntryDto dto)
-        {
-           
+        //public async Task<RegisteredVehiclesDto> ManualRegisterVehicleEntryAsync(ManualVehicleEntryDto dto)
+        //{
 
+
+        //    try
+        //    {
+        //        string normalizedPlate = dto.Plate.Trim().ToUpper();
+        //        var vehicle = await _vehicleBusiness.GetVehicleByPlate(normalizedPlate);
+
+        //        if (vehicle == null)
+        //        {
+        //            VehicleDto newVehicleDto = new()
+        //            {
+        //                Plate = normalizedPlate,
+        //                Color = "",
+        //                TypeVehicleId = dto.TypeVehicleId, // Usa el del DTO
+        //                ClientId = 3
+        //            };
+        //            vehicle = await _vehicleBusiness.Save(newVehicleDto);
+        //        }
+
+        //        bool hasActiveEntry = await _data.GetActiveRegisterByVehicleIdAsync(vehicle.Id) != null;
+        //        if (hasActiveEntry)
+        //        {
+        //            throw new BusinessException($"El vehículo con placa {normalizedPlate} ya tiene una entrada activa.");
+        //        }
+
+        //        RegisteredVehiclesDto registeredVehicle = await RegisterVehicleWithSlotAsync(vehicle.Id, dto.ParkingId); // Usa el parkingId del DTO
+        //        return registeredVehicle;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new BusinessException($"Error en el registro manual de entrada para la placa {dto.Plate}: {ex.Message}", ex);
+        //    }
+        //}
+        public async Task<ManualEntryResponseDto> ManualRegisterVehicleEntryAsync(ManualVehicleEntryDto dto)
+        {
             try
             {
                 string normalizedPlate = dto.Plate.Trim().ToUpper();
@@ -198,11 +233,12 @@ namespace Business.Implementations.Operational
 
                 if (vehicle == null)
                 {
+                    // Validación de tipo de vehículo ya no es necesaria, asumimos que es > 0 por el DTO
                     VehicleDto newVehicleDto = new()
                     {
                         Plate = normalizedPlate,
                         Color = "",
-                        TypeVehicleId = dto.TypeVehicleId, // Usa el del DTO
+                        TypeVehicleId = dto.TypeVehicleId,
                         ClientId = 3
                     };
                     vehicle = await _vehicleBusiness.Save(newVehicleDto);
@@ -214,14 +250,31 @@ namespace Business.Implementations.Operational
                     throw new BusinessException($"El vehículo con placa {normalizedPlate} ya tiene una entrada activa.");
                 }
 
-                RegisteredVehiclesDto registeredVehicle = await RegisterVehicleWithSlotAsync(vehicle.Id, dto.ParkingId); // Usa el parkingId del DTO
-                return registeredVehicle;
+                // 1. Registrar la entrada (obtiene el RegisteredVehiclesDto con Slot y Vehicle)
+                RegisteredVehiclesDto registeredVehicle = await RegisterVehicleWithSlotAsync(vehicle.Id, dto.ParkingId);
+                var fullVehicle = await _vehicleBusiness.GetById(vehicle.Id);
+
+                // Sobrescribimos información para el PDF SIN modificar el DTO original:
+                registeredVehicle.Vehicle = fullVehicle.Plate;
+                registeredVehicle.Sector = fullVehicle.TypeVehicle;
+
+
+                // 2. Generar el Ticket PDF en bytes
+                var ticketDocument = new TicketDocument(registeredVehicle);
+                byte[] pdfBytes = ticketDocument.GeneratePdf(); // QuestPDF extension method
+
+                // 3. Mapear al DTO de respuesta y adjuntar los bytes
+                var responseDto = _mapper.Map<ManualEntryResponseDto>(registeredVehicle);
+                responseDto.TicketPdfBytes = pdfBytes;
+
+                return responseDto;
             }
             catch (Exception ex)
             {
+                // Para no perder la BusinessException original si fue lanzada antes de este bloque
+                if (ex is BusinessException) throw;
                 throw new BusinessException($"Error en el registro manual de entrada para la placa {dto.Plate}: {ex.Message}", ex);
             }
         }
-
     }
 }
