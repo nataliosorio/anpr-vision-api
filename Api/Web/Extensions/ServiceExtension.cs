@@ -36,6 +36,7 @@ using Entity.Dtos.Security;
 using Entity.Models.Security;
 using Infrastructure.Kafka;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Infrastructure;
 using System.Configuration;
 using Utilities.Audit.Services;
 using Utilities.Audit.Strategy;
@@ -53,6 +54,11 @@ namespace Web.Extensions
     {
         public static IServiceCollection AddAppServices(this IServiceCollection services)
         {
+            // --------------------------------------------------------
+            // ✨ FIX: CONFIGURACIÓN DE QUESTPDF (Soluciona el error de licencia)
+            // Esto debe ejecutarse al inicio, antes de que se use la librería.
+            // --------------------------------------------------------
+            QuestPDF.Settings.License = LicenseType.Community;
             // 🔹 Registrar el BackgroundService
             services.AddHostedService<KafkaConsumerService>();
             //segundo plano

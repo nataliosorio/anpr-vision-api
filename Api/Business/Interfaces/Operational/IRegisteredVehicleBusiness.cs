@@ -24,7 +24,8 @@ namespace Business.Interfaces.Operational
 
 
         //  método para el registro manual por placa 
-        Task<RegisteredVehiclesDto> ManualRegisterVehicleEntryAsync(ManualVehicleEntryDto dto);
+        //Task<RegisteredVehiclesDto> ManualRegisterVehicleEntryAsync(ManualVehicleEntryDto dto);
+        Task<ManualEntryResponseDto> ManualRegisterVehicleEntryAsync(ManualVehicleEntryDto dto);
 
     }
 }
