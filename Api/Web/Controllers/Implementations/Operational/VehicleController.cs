@@ -3,6 +3,7 @@ using Business.Interfaces;
 using Business.Interfaces.Operational;
 using Data.Implementations;
 using Entity.Dtos.Operational;
+using Entity.Dtos.vehicle;
 using Entity.Models;
 using Entity.Models.Operational;
 using Microsoft.AspNetCore.Mvc;
@@ -85,6 +86,25 @@ namespace Web.Controllers.Implementations.Operational
 
             return Ok(result);
         }
+
+        [HttpGet("by-client/status/{clientId}")]
+        public async Task<IActionResult> GetWithStatusByClientId(int clientId)
+        {
+            try
+            {
+                var result = await _business.GetVehiclesWithStatusByClientIdAsync(clientId);
+
+                if (!result.Any())
+                    return NotFound(new ApiResponse<object>(null, false, "El cliente no tiene vehículos.", null));
+
+                return Ok(new ApiResponse<IEnumerable<VehicleWithStatusDto>>(result, true, "Ok", null));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<object>(null, false, ex.Message, null));
+            }
+        }
+
 
 
     }
