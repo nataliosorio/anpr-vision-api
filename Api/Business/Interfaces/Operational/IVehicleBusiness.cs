@@ -1,4 +1,5 @@
 ﻿using Entity.Dtos.Operational;
+using Entity.Dtos.vehicle;
 using Entity.Models.Operational;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,11 @@ namespace Business.Interfaces
         // Nuevo método para registrar vehículo + slot automáticamente
         Task<RegisteredVehiclesDto?> GetActiveVehicleBySlotAsync(int slotId);
         Task<VehicleDto> GetVehicleByPlate(string plate);
+        //Task<IEnumerable<VehicleDto>> GetVehiclesByClientIdAsync(int clientId);
+
+        Task<IEnumerable<VehicleWithStatusDto>> GetVehiclesWithStatusByClientIdAsync(int clientId);
+
+
 
 
 
