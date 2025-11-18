@@ -3,6 +3,7 @@ using Data.Interfaces.Operational;
 using Entity.Contexts;
 using Entity.Contexts.parking;
 using Entity.Dtos.Operational;
+using Entity.Dtos.vehicle;
 using Entity.Models.Operational;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -110,6 +111,93 @@ namespace Data.Implementations.Operational
                 .AsNoTracking()
                 .FirstOrDefaultAsync(v => v.Plate.ToLower() == plate.ToLower());
         }
+
+        //public async Task<IEnumerable<VehicleDto>> GetVehiclesByClientIdAsync(int clientId)
+        //{
+        //    return await _context.Vehicles
+        //        .AsNoTracking()
+        //        .Where(v => v.ClientId == clientId && v.IsDeleted == false)
+        //        .Include(v => v.TypeVehicle)
+        //        .Include(v => v.Client)
+        //            .ThenInclude(c => c.Person)
+        //        .Select(v => new VehicleDto
+        //        {
+        //            Id = v.Id,
+        //            Plate = v.Plate,
+        //            Color = v.Color,
+
+        //            TypeVehicleId = v.TypeVehicleId,
+        //            TypeVehicle = v.TypeVehicle != null ? v.TypeVehicle.Name : null,
+
+        //            ClientId = v.ClientId,
+        //            Client = v.Client != null
+        //                ? $"{v.Client.Person.FirstName} {v.Client.Person.LastName}"
+        //                : null
+        //        })
+        //        .ToListAsync();
+        //}
+
+
+        //public async Task<IEnumerable<VehicleWithStatusDto>> GetVehiclesWithStatusByClientIdAsync(int clientId)
+        //{
+        //    return await _context.Vehicles
+        //        .AsNoTracking()
+        //        .Where(v => v.ClientId == clientId && v.IsDeleted == false)
+        //        .Include(v => v.TypeVehicle)
+        //        .Include(v => v.Client).ThenInclude(c => c.Person)
+        //        .Select(v => new VehicleWithStatusDto
+        //        {
+        //            Id = v.Id,
+        //            Plate = v.Plate,
+        //            Color = v.Color,
+
+        //            TypeVehicleId = v.TypeVehicleId,
+        //            TypeVehicle = v.TypeVehicle != null ? v.TypeVehicle.Name : null,
+
+        //            ClientId = v.ClientId,
+        //            Client = v.Client != null
+        //                ? v.Client.Person.FirstName + " " + v.Client.Person.LastName
+        //                : null,
+
+        //            IsInside = false 
+        //        })
+        //        .ToListAsync();
+        //}
+
+        public async Task<IEnumerable<VehicleWithStatusDto>> GetVehiclesWithStatusByClientIdAsync(int clientId)
+        {
+            return await _context.Vehicles
+                .AsNoTracking()
+                .Where(v => v.ClientId == clientId && v.IsDeleted == false)
+                .Include(v => v.TypeVehicle)
+                .Include(v => v.Client).ThenInclude(c => c.Person)
+                .Select(v => new VehicleWithStatusDto
+                {
+                    Id = v.Id,
+                    Plate = v.Plate,
+                    Color = v.Color,
+
+                    TypeVehicleId = v.TypeVehicleId,
+                    TypeVehicle = v.TypeVehicle != null ? v.TypeVehicle.Name : null,
+
+                    ClientId = v.ClientId,
+                    Client = v.Client != null
+                        ? v.Client.Person.FirstName + " " + v.Client.Person.LastName
+                        : null,
+
+                    // estos 4 campos los llenamos en Business
+                    IsInside = false,
+                    EntryDate = null,
+                    SlotId = null,
+                    SlotName = null,
+                    TimeInside = null
+                })
+                .ToListAsync();
+        }
+
+
+
+
 
     }
 }
