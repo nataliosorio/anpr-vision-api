@@ -30,7 +30,8 @@ namespace Business.Implementations.Operational
         private readonly ISectorsBusiness _sectorsBusiness;
         private readonly ISlotsBusiness _slotsBusiness;
         private readonly IMapper _mapper;
-        public RegisteredVehicleBusiness(IRegisteredVehiclesData data, IMapper mapper, IVehicleBusiness vehicleBusiness, ISectorsBusiness sectorsBusiness, ISlotsBusiness slotsBusiness)
+        private readonly ITypeVehicleBusiness _typeVehicleBusiness;
+        public RegisteredVehicleBusiness(IRegisteredVehiclesData data, IMapper mapper, IVehicleBusiness vehicleBusiness,ITypeVehicleBusiness typeVehicleBusiness, ISectorsBusiness sectorsBusiness, ISlotsBusiness slotsBusiness)
             : base(data, mapper)
         {
             _data = data;
@@ -38,6 +39,7 @@ namespace Business.Implementations.Operational
             _sectorsBusiness = sectorsBusiness;
             _mapper = mapper;
             _slotsBusiness = slotsBusiness;
+            _typeVehicleBusiness = typeVehicleBusiness;
         }
 
 
@@ -184,7 +186,42 @@ namespace Business.Implementations.Operational
             dto.Slots = (await _slotsBusiness.GetById(activeRegister.SlotsId ?? 0))?.Name ?? "N/A";
             return dto;
         }
+        //  Nuevo método para el registro manual por placa 
+        public async Task<RegisteredVehiclesDto> ManualRegisterVehicleEntryAsync(ManualVehicleEntryDto dto)
+        {
+           
 
+            try
+            {
+                string normalizedPlate = dto.Plate.Trim().ToUpper();
+                var vehicle = await _vehicleBusiness.GetVehicleByPlate(normalizedPlate);
+
+                if (vehicle == null)
+                {
+                    VehicleDto newVehicleDto = new()
+                    {
+                        Plate = normalizedPlate,
+                        Color = "",
+                        TypeVehicleId = dto.TypeVehicleId, // Usa el del DTO
+                        ClientId = 3
+                    };
+                    vehicle = await _vehicleBusiness.Save(newVehicleDto);
+                }
+
+                bool hasActiveEntry = await _data.GetActiveRegisterByVehicleIdAsync(vehicle.Id) != null;
+                if (hasActiveEntry)
+                {
+                    throw new BusinessException($"El vehículo con placa {normalizedPlate} ya tiene una entrada activa.");
+                }
+
+                RegisteredVehiclesDto registeredVehicle = await RegisterVehicleWithSlotAsync(vehicle.Id, dto.ParkingId); // Usa el parkingId del DTO
+                return registeredVehicle;
+            }
+            catch (Exception ex)
+            {
+                throw new BusinessException($"Error en el registro manual de entrada para la placa {dto.Plate}: {ex.Message}", ex);
+            }
+        }
 
     }
 }

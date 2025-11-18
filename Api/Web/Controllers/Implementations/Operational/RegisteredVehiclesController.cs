@@ -5,6 +5,7 @@ using Entity.Dtos.Operational;
 using Entity.Models;
 using Entity.Models.Operational;
 using Microsoft.AspNetCore.Mvc;
+using Utilities.Exceptions;
 
 namespace Web.Controllers.Implementations.Operational
 {
@@ -103,6 +104,30 @@ namespace Web.Controllers.Implementations.Operational
             {
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     new ApiResponse<List<OccupancyItemDto>>(null!, false, ex.Message, null));
+            }
+        }
+
+        [HttpPost("manual-entry")]
+        public async Task<IActionResult> ManualRegisterVehicleEntry([FromBody] ManualVehicleEntryDto dto) 
+        {
+            try
+            {
+              
+
+                // Llama al método de negocio con el DTO
+                RegisteredVehiclesDto data = await _business.ManualRegisterVehicleEntryAsync(dto);
+
+                return Ok(new ApiResponse<RegisteredVehiclesDto>(data, true, "Entrada manual registrada correctamente.", null));
+            }
+           
+            catch (BusinessException bex)
+            {
+                return BadRequest(new ApiResponse<RegisteredVehiclesDto>(null!, false, bex.Message, null));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new ApiResponse<RegisteredVehiclesDto>(null!, false, $"Error al procesar la entrada manual: {ex.Message}", null));
             }
         }
 
