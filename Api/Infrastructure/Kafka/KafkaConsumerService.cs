@@ -32,8 +32,10 @@ public class KafkaConsumerService : BackgroundService
         _logger = logger;
         _scopeFactory = scopeFactory;
         _config = options.Value;
-        _topic = configuration["Kafka:Topic"]
-                 ?? throw new InvalidOperationException("Kafka:Topic is missing");
+
+        //Consumimos SOLO el tópico de detecciones
+        _topic = configuration["Kafka:Topics:PlateDetections"]
+                 ?? throw new InvalidOperationException("Kafka:Topics:PlateDetections is missing");
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -41,7 +43,7 @@ public class KafkaConsumerService : BackgroundService
         _consumer = new ConsumerBuilder<string, string>(_config).Build();
         _consumer.Subscribe(_topic);
 
-        _logger.LogInformation("KafkaConsumerService iniciado. Esperando mensajes...");
+        _logger.LogInformation("KafkaConsumerService iniciado. Escuchando tópico {Topic} ...", _topic);
 
         return Task.Run(() =>
         {
@@ -50,25 +52,26 @@ public class KafkaConsumerService : BackgroundService
                 try
                 {
                     var result = _consumer.Consume(stoppingToken);
+
                     if (result?.Message?.Value is not null)
                     {
-                        _logger.LogInformation("Kafka => Mensaje recibido {Value}", result.Message.Value);
+                        _logger.LogInformation("Kafka => Mensaje recibido: {Value}", result.Message.Value);
 
                         var evt = JsonSerializer.Deserialize<PlateDetectedEventRecord>(
                             result.Message.Value, _jsonOptions);
 
                         if (evt is not null)
                         {
-                            //  Fire and forget
                             _ = Task.Run(async () =>
                             {
                                 try
                                 {
                                     using var scope = _scopeFactory.CreateScope();
-                                    var business = scope.ServiceProvider.GetRequiredService<IVehicleDetectionManagerBusiness>();
+                                    var business = scope.ServiceProvider
+                                        .GetRequiredService<IVehicleDetectionManagerBusiness>();
+
                                     await business.ProcessDetectionAsync(evt, stoppingToken);
 
-                                    // confirmamos offset después de procesar
                                     _consumer.Commit(result);
                                 }
                                 catch (Exception ex)
@@ -85,12 +88,12 @@ public class KafkaConsumerService : BackgroundService
                 }
                 catch (ConsumeException ex)
                 {
-                    _logger.LogError(ex, "Error consumiendo mensaje de Kafka");
+                    _logger.LogError(ex, "Error consumiendo de Kafka");
                     Thread.Sleep(2000);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error inesperado en Kafka consumer");
+                    _logger.LogError(ex, "Error inesperado en consumer Kafka");
                     Thread.Sleep(2000);
                 }
             }
