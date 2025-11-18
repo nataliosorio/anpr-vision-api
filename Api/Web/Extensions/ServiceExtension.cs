@@ -14,6 +14,7 @@ using Business.Interfaces.Detection;
 using Business.Interfaces.Menu;
 using Business.Interfaces.Operational;
 using Business.Interfaces.Parameter;
+using Business.Interfaces.Producer;
 using Business.Interfaces.Security;
 using Business.Interfaces.Security.Authentication;
 using Business.Interfaces.Security.PasswordRecovery;
@@ -55,6 +56,7 @@ namespace Web.Extensions
         {
             // 🔹 Registrar el BackgroundService
             services.AddHostedService<KafkaConsumerService>();
+            services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
             //segundo plano
             services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
             services.AddHostedService<QueuedHostedService>();
