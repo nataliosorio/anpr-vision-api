@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
 using Business.Interfaces.Parameter;
+using Business.Interfaces.Producer;
 using Data.Interfaces.Parameter;
 using Entity.Dtos.Parameter;
 using Entity.Models.Parameter;
+using Entity.Records;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,11 +20,13 @@ namespace Business.Implementations.Parameter
     {
         private readonly ICamaraData _data;
         private readonly IMapper _mapper;
-        public CamaraBusiness(ICamaraData data, IMapper mapper)
+        private readonly IKafkaProducerService _producer;
+        public CamaraBusiness(ICamaraData data, IMapper mapper, IKafkaProducerService producer)
             : base(data, mapper)
         {
             _data = data;
             _mapper = mapper;
+            _producer = producer;
         }
         public async Task<IEnumerable<CameraDto>> GetAllJoinAsync()
         {
@@ -69,11 +73,70 @@ namespace Business.Implementations.Parameter
             }
         }
 
+        public override async Task<CameraDto> Save(CameraDto dto)
+        {
+            var result = await base.Save(dto);
+
+            await _producer.SendCameraSyncAsync(
+                new CameraSyncEventRecord(
+                    "CREATE",
+                    new CameraSyncPayloadRecord(
+                        result.Id,
+                        result.ParkingId,
+                        result.Name,
+                        result.Url,
+                        result.Resolution,
+                        result.Asset ?? false,
+                        result.IsDeleted
+                    )
+                )
+            );
+
+            return result;
+        }
 
 
+        public override async Task Update(CameraDto dto)
+        {
+            await base.Update(dto);
 
+            await _producer.SendCameraSyncAsync(
+                new CameraSyncEventRecord(
+                    "UPDATE",
+                    new CameraSyncPayloadRecord(
+                        dto.Id,
+                        dto.ParkingId,
+                        dto.Name,
+                        dto.Url,
+                        dto.Resolution,
+                        dto.Asset ?? false,
+                        dto.IsDeleted
+                    )
+                )
+            );
+        }
 
+        public override async Task<int> Delete(int id)
+        {
+            var deleted = await base.Delete(id);
 
+            await _producer.SendCameraSyncAsync(
+                new CameraSyncEventRecord(
+                    "DELETE",
+                    new CameraSyncPayloadRecord(
+                        id,
+                        0,
+                        "",
+                        "",
+                        "",
+                        false,     // asset false porque ya está borrada
+                        true       // isDeleted true
+                    )
+                )
+            );
+
+            return deleted;
+        }
 
     }
 }
