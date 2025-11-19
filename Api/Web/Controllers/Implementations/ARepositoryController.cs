@@ -9,7 +9,7 @@ namespace Web.Controllers.Implementations
     {
 
         public abstract Task<ActionResult<IEnumerable<D>>> GetAll([FromQuery] Dictionary<string, string?> filters);
-        public abstract Task<ActionResult<D>> GetById(int id);
+        public abstract Task<ActionResult<D>> GetById(int id);  
         public abstract Task<ActionResult<D>> Save(D dto);
         public abstract Task<ActionResult<D>> Update(D dto);
         public abstract Task<ActionResult> PermanentDelete(int id);

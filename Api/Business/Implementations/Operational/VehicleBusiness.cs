@@ -5,6 +5,7 @@ using Data.Implementations;
 using Data.Interfaces.Operational;
 using Data.Interfaces.Parameter;
 using Entity.Dtos.Operational;
+using Entity.Dtos.vehicle;
 using Entity.Enums;
 using Entity.Models;
 using Entity.Models.Operational;
@@ -144,6 +145,51 @@ namespace Business.Implementations.Operational
             VehicleDto returnVehicle = _mapper.Map<VehicleDto>(vehicle);
             return returnVehicle;
         }
+
+        //public async Task<IEnumerable<VehicleDto>> GetVehiclesByClientIdAsync(int clientId)
+        //{
+        //    if (clientId <= 0)
+        //        throw new ArgumentException("ClientId inválido.");
+
+        //    var data = await _data.GetVehiclesByClientIdAsync(clientId);
+
+        //    return data;
+        //}
+
+        public async Task<IEnumerable<VehicleWithStatusDto>> GetVehiclesWithStatusByClientIdAsync(int clientId)
+        {
+            var vehicles = await _data.GetVehiclesWithStatusByClientIdAsync(clientId);
+
+            foreach (var v in vehicles)
+            {
+                var active = await _registeredVehicleData.GetActiveRegisterByVehicleIdAsync(v.Id);
+
+                if (active != null && active.ExitDate == null)
+                {
+                    v.IsInside = true;
+                    v.EntryDate = active.EntryDate;
+                    v.SlotId = active.SlotsId;
+                    v.SlotName = active.Slots?.Name;
+
+                    // cálculo del tiempo adentro
+                    var minutes = (DateTime.UtcNow - active.EntryDate).TotalMinutes;
+
+                    if (minutes < 60)
+                        v.TimeInside = $"{Math.Round(minutes)} min";
+                    else
+                    {
+                        var hours = Math.Floor(minutes / 60);
+                        var mins = Math.Round(minutes % 60);
+                        v.TimeInside = $"{hours}h {mins}m";
+                    }
+                }
+            }
+
+            return vehicles;
+        }
+
+
+
 
     }
 }
