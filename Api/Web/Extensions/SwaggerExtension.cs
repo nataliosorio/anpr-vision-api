@@ -13,7 +13,7 @@ namespace Web.Extensions
                 // Documento principal de Swagger
                 options.SwaggerDoc("v1", new OpenApiInfo
                 {
-                    Title = "Security API",
+                    Title = "ANPR-VISION API",
                     Version = "v1",
                     Description = "API para gestión de usuarios, roles y permisos",
                     Contact = new OpenApiContact
