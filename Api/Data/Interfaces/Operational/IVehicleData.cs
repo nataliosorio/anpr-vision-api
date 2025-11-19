@@ -1,4 +1,5 @@
 ﻿using Entity.Dtos.Operational;
+using Entity.Dtos.vehicle;
 using Entity.Models.Operational;
 using System;
 using System.Collections.Generic;
@@ -14,6 +15,10 @@ namespace Data.Interfaces.Operational
         Task<IEnumerable<VehicleDto>> GetAllJoinAsync();
         Task<RegisteredVehicles?> GetActiveRegisteredVehicleBySlotAsync(int slotId);
         Task<Vehicle?> GetVehicleByPlate(string plate);
+        //Task<IEnumerable<VehicleDto>> GetVehiclesByClientIdAsync(int clientId);
+
+        Task<IEnumerable<VehicleWithStatusDto>> GetVehiclesWithStatusByClientIdAsync(int clientId);
+
 
     }
 }
