@@ -12,12 +12,27 @@
                 options.AddPolicy("CorsPolicy", policy =>
                 {
                     policy
-                        .WithOrigins(origenesPermitidos ?? Array.Empty<string>())
+                        .SetIsOriginAllowed(origin =>
+                        {
+                            if (string.IsNullOrEmpty(origin))
+                                return true; // permite origin null (Android WebView)
+
+                            // Si coincide con uno de los configurados, permitir
+                            if (origenesPermitidos?.Contains(origin) == true)
+                                return true;
+
+                            // Capacitor/Ionic origins
+                            if (origin.StartsWith("capacitor://") || origin.StartsWith("ionic://"))
+                                return true;
+
+                            return false;
+                        })
                         .AllowAnyHeader()
                         .AllowAnyMethod()
                         .AllowCredentials();
                 });
             });
+
 
             return services;
         }
