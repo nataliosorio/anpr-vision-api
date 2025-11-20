@@ -83,6 +83,9 @@ if (app.Environment.IsDevelopment())
 }
 
 //app.UseHttpsRedirection();
+// 1️⃣ Routing
+app.UseRouting();
+
 app.UseCors("CorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
