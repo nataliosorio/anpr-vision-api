@@ -39,4 +39,25 @@ public class NotificationData : RepositoryData<Notification>, INotificationData
             await _context.SaveChangesAsync();
         }
     }
+
+
+    public async Task MarkAllAsReadByParkingAsync(int parkingId)
+    {
+        // Solo traemos las que NO están leídas. 
+        
+        var unreadNotifications = await _context.Notifications
+            .Where(n => n.ParkingId == parkingId && !n.IsRead)
+            .ToListAsync();
+
+        //  Si no hay nada que actualizar, retornamos rápido para no tocar la DB.
+        if (!unreadNotifications.Any()) return;
+
+        // Actualizamos el estado en memoria
+        foreach (var notification in unreadNotifications)
+        {
+            notification.IsRead = true;
+        }
+
+        await _context.SaveChangesAsync();
+    }
 }
