@@ -43,6 +43,11 @@ namespace Business.Implementations.Operational
             await _data.MarkAsReadAsync(id);
         }
 
+        public async Task MarkAllAsReadByParkingAsync(int parkingId)
+        {
+            await _data.MarkAllAsReadByParkingAsync(parkingId);
+        }
+
         /// <summary>
         /// Guarda la notificación y la envía inmediatamente.
         /// </summary>
