@@ -232,5 +232,17 @@ namespace Data.Implementations.Operational
                 .AsNoTracking() // 👈 agregado
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<RegisteredVehicles?> GetFullByIdAsync(int id)
+        {
+            return await _context.RegisteredVehicles
+                .Include(rv => rv.Vehicle)
+                    .ThenInclude(v => v.TypeVehicle)
+                .Include(rv => rv.Slots)
+                    .ThenInclude(s => s.Sectors)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(rv => rv.Id == id);
+        }
+
     }
 }
