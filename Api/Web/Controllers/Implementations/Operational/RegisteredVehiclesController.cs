@@ -5,17 +5,22 @@ using Entity.Dtos.Operational;
 using Entity.Models;
 using Entity.Models.Operational;
 using Microsoft.AspNetCore.Mvc;
+using QuestPDF.Fluent;
 using Utilities.Exceptions;
+using Utilities.Interfaces.Ticket;
+using Utilities.Pdf;
 
 namespace Web.Controllers.Implementations.Operational
 {
     public class RegisteredVehiclesController: RepositoryController<RegisteredVehicles, RegisteredVehiclesDto>
     {
         private readonly IRegisteredVehicleBusiness _business;
-        public RegisteredVehiclesController(IRegisteredVehicleBusiness business)
+        private readonly ITicketService _ticketService;
+        public RegisteredVehiclesController(IRegisteredVehicleBusiness business, ITicketService ticketService)
             : base(business)
         {
             _business = business;
+            _ticketService = ticketService;
         }
 
         [HttpGet("join")]
@@ -156,6 +161,31 @@ namespace Web.Controllers.Implementations.Operational
                     new ApiResponse<ManualEntryResponseDto>(null!, false, $"Error al procesar la entrada manual: {ex.Message}", null));
             }
         }
+
+
+        //[HttpGet("{id:int}/ticket")]
+        //public async Task<IActionResult> GenerateTicket(int id)
+        //{
+        //    try
+        //    {
+        //        var dto = await _business.GetRegisteredVehicleFullDtoAsync(id);
+
+        //        if (dto == null)
+        //            return NotFound(new ApiResponse<object>(null, false, "Registro no encontrado.", null));
+
+        //        byte[] pdfBytes = _ticketService.GenerateTicketPdf(dto);
+
+        //        string fileName = $"ticket_{dto.Vehicle}_{dto.EntryDate:yyyyMMdd_HHmm}.pdf";
+        //        return File(pdfBytes, "application/pdf", fileName);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500,
+        //            new ApiResponse<object>(null, false, $"Error al generar el ticket: {ex.Message}", null));
+        //    }
+        //}
+
+
 
 
         //[HttpGet("by-parking/{parkingId:int}")]
