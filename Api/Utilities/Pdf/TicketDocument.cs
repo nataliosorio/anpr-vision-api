@@ -18,7 +18,7 @@ namespace Utilities.Pdf
 
         public TicketDocument(RegisteredVehiclesDto registeredVehicle)
         {
-            string qr = $"Entry:{registeredVehicle.Id}|Plate:{registeredVehicle.Vehicle}";
+            string qr = $"Placa:{registeredVehicle.Vehicle}";
 
             Model = new TicketData
             {
@@ -41,7 +41,7 @@ namespace Utilities.Pdf
                 .Page(page =>
                 {
                     // Define el formato de página para un ticket pequeño y continuo
-                    page.Size(PageSizes.A7); // Un tamaño pequeño, similar a un recibo
+                    page.Size(210, 400); // Un tamaño pequeño, similar a un recibo
                     page.Margin(10);
                     page.Content().Element(ComposeContent); // Llama al método de diseño
                 });
@@ -51,77 +51,80 @@ namespace Utilities.Pdf
         private void ComposeContent(IContainer container)
         {
             var labelStyle = TextStyle.Default
-                .FontSize(9)
-                .FontColor(Colors.Grey.Darken2);
+                .FontSize(8)
+                .FontColor("#555");
 
             var valueStyle = TextStyle.Default
-                .FontSize(12)
+                .FontSize(11)
                 .SemiBold()
-                .FontColor(Colors.Black);
+                .FontColor("#000");
 
-            container.Padding(18).Column(col =>
-            {
-                col.Spacing(14);
+            var titleStyle = TextStyle.Default
+                .FontSize(13)
+                .SemiBold()
+                .FontColor("#00D1FF");
 
-                // HEADER
-                col.Item().Column(header =>
+            container
+                .Padding(10)
+                .Border(1)
+                .PaddingHorizontal(8)
+                .PaddingVertical(6)
+                .Column(col =>
                 {
-                    header.Spacing(4);
+                    col.Spacing(6);
 
-                    header.Item().AlignCenter().Text("TICKET DE PARQUEO")
-                        .Style(TextStyle.Default.FontSize(14).SemiBold().FontColor("#00D1FF"));
+                    // === HEADER ===
+                    col.Item().AlignCenter().Text("TICKET DE PARQUEO").Style(titleStyle);
+                    col.Item().LineHorizontal(1).LineColor("#00D1FF");
 
-                    header.Item().LineHorizontal(1).LineColor("#00D1FF");
+                    // === DATOS (PLACA, TIPO, UBICACIÓN, FECHA) ===
+                    col.Item().Column(section =>
+                    {
+                        section.Spacing(2);
+
+                        section.Item().Text("PLACA").Style(labelStyle);
+                        section.Item().Text(Model.Plate)
+                            .Style(TextStyle.Default.FontSize(18).Bold().FontColor("#00D1FF"));
+
+                        section.Item().Text("Tipo").Style(labelStyle);
+                        section.Item().Text(Model.VehicleType).Style(valueStyle);
+
+                        section.Item().Text("Ubicación").Style(labelStyle);
+                        section.Item().Text(Model.SlotName)
+                            .Style(valueStyle.FontColor("#10B981"));
+
+                        section.Item().Text("Entrada").Style(labelStyle);
+
+                        var localDate = Model.EntryDate.ToLocalTime();
+                        section.Item().Text(localDate.ToString("dd/MM/yyyy HH:mm"))
+                            .Style(valueStyle);
+                    });
+
+                    // === DIVISOR ===
+                    col.Item().PaddingVertical(4)
+                        .LineHorizontal(0.5f)
+                        .LineColor("#DDDDDD");
+
+                    // === QR EN LA MISMA PÁGINA ===
+                    col.Item().AlignCenter()
+                        .Container()
+                        .PaddingTop(4)
+                        .MaxWidth(120)
+                        .Image(Model.QrImageBytes);
+
+                    // === MARCA DE AGUA ANPR VISION ===
+                    col.Item().AlignCenter()
+                        .PaddingTop(3)
+                        .Text("ANPR VISION")
+                        .Style(TextStyle.Default
+                            .FontSize(9)
+                            .Italic()
+                            .FontColor("#A0A0A0")); // gris suave
                 });
-
-                // PLACA
-                col.Item().Column(info =>
-                {
-                    info.Spacing(2);
-
-                    info.Item().Text("PLACA").Style(labelStyle);
-                    info.Item().Text(Model.Plate)
-                        .Style(TextStyle.Default.FontSize(22).ExtraBold().FontColor("#00D1FF"));
-                });
-
-                // TIPO VEHÍCULO
-                col.Item().Column(info =>
-                {
-                    info.Spacing(1);
-                    info.Item().Text("Tipo de vehículo").Style(labelStyle);
-                    info.Item().Text(Model.VehicleType).Style(valueStyle);
-                });
-
-                // SLOT
-                col.Item().Column(info =>
-                {
-                    info.Spacing(1);
-                    info.Item().Text("Slot asignado").Style(labelStyle);
-                    info.Item().Text(Model.SlotName)
-                        .Style(valueStyle.FontColor("#34D399")); // verde ANPR Vision
-                });
-
-                // ENTRADA
-                col.Item().Column(info =>
-                {
-                    info.Spacing(1);
-                    info.Item().Text("Entrada").Style(labelStyle);
-                    info.Item().Text(Model.EntryDate.ToString("dd/MM/yyyy HH:mm"))
-                        .Style(valueStyle);
-                });
-
-                // Separador suave tipo neumorfismo
-                col.Item().PaddingVertical(10).LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
-
-                // QR CENTRADO
-                col.Item().AlignCenter().Container().MaxWidth(120).Image(Model.QrImageBytes);
-
-                // ID
-                //col.Item().AlignCenter().PaddingTop(6)
-                //    .Text($"ID: {Model.RegisteredVehicleId}")
-                //    .Style(TextStyle.Default.FontSize(10).FontColor(Colors.Grey.Darken1));
-            });
         }
+
+
+
 
 
     }
