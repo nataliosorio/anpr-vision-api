@@ -56,16 +56,45 @@ namespace Data.Implementations.Parameter
         //        })
         //        .ToListAsync();
         //}
+        //public async Task<IEnumerable<CameraDto>> GetAllJoinAsync()
+        //{
+        //    var query = _context.Cameras.AsNoTracking().Where(c => c.IsDeleted == false);
+
+        //    // ✅ Filtra automáticamente según el token
+        //    if (_parkingContext.ParkingId.HasValue)
+        //    {
+        //        var pid = _parkingContext.ParkingId.Value;
+        //        query = query.Where(c => c.ParkingId == pid);
+        //    }
+
+        //    return await query
+        //        .Select(p => new CameraDto
+        //        {
+        //            Id = p.Id,
+        //            Asset = p.Asset,
+        //            IsDeleted = p.IsDeleted,
+        //            Name = p.Name,
+        //            Resolution = p.Resolution,
+        //            Url = p.Url,
+        //            ParkingId = p.ParkingId,
+        //            Parking = p.Parking != null ? p.Parking.Name : null
+        //        })
+        //        .ToListAsync();
+        //}
+
+
+
         public async Task<IEnumerable<CameraDto>> GetAllJoinAsync()
         {
             var query = _context.Cameras.AsNoTracking();
 
-            // ✅ Filtra automáticamente según el token
+            // 3. Filtro de Tenancy (Contexto del Parking)
             if (_parkingContext.ParkingId.HasValue)
             {
                 var pid = _parkingContext.ParkingId.Value;
                 query = query.Where(c => c.ParkingId == pid);
             }
+
 
             return await query
                 .Select(p => new CameraDto
@@ -77,6 +106,7 @@ namespace Data.Implementations.Parameter
                     Resolution = p.Resolution,
                     Url = p.Url,
                     ParkingId = p.ParkingId,
+                    // Null propagation para evitar NullReferenceException si el parking fue borrado físicamente
                     Parking = p.Parking != null ? p.Parking.Name : null
                 })
                 .ToListAsync();
