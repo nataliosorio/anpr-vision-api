@@ -3,10 +3,12 @@ using Entity.Dtos.Security;
 using Entity.DtoSpecific.RolFormPermission;
 using Entity.Models;
 using Entity.Models.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers.Implementations.Security
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class RolFormPermissionController : RepositoryController<RolFormPermission, RolFormPermissionDto>
@@ -60,5 +62,47 @@ namespace Web.Controllers.Implementations.Security
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
+
+        [HttpGet("grouped")]
+        public async Task<ActionResult<IEnumerable<RolFormPermissionGroupedDto>>> GetAllGrouped()
+        {
+            try
+            {
+                var data = await _business.GetAllGroupedAsync();
+
+                if (data == null || !data.Any())
+                {
+                    var responseNull = new ApiResponse<IEnumerable<RolFormPermissionGroupedDto>>(
+                        null,
+                        false,
+                        "No se encontraron permisos configurados.",
+                        null
+                    );
+
+                    return NotFound(responseNull);
+                }
+
+                var response = new ApiResponse<IEnumerable<RolFormPermissionGroupedDto>>(
+                    data,
+                    true,
+                    "Ok",
+                    null
+                );
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                var response = new ApiResponse<IEnumerable<RolFormPermissionGroupedDto>>(
+                    null,
+                    false,
+                    ex.Message,
+                    null
+                );
+
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
     }
 }

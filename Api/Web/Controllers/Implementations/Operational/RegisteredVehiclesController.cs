@@ -112,29 +112,7 @@ namespace Web.Controllers.Implementations.Operational
             }
         }
 
-        //[HttpPost("manual-entry")]
-        //public async Task<IActionResult> ManualRegisterVehicleEntry([FromBody] ManualVehicleEntryDto dto) 
-        //{
-        //    try
-        //    {
-
-
-        //        // Llama al método de negocio con el DTO
-        //        RegisteredVehiclesDto data = await _business.ManualRegisterVehicleEntryAsync(dto);
-
-        //        return Ok(new ApiResponse<RegisteredVehiclesDto>(data, true, "Entrada manual registrada correctamente.", null));
-        //    }
-
-        //    catch (BusinessException bex)
-        //    {
-        //        return BadRequest(new ApiResponse<RegisteredVehiclesDto>(null!, false, bex.Message, null));
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(StatusCodes.Status500InternalServerError,
-        //            new ApiResponse<RegisteredVehiclesDto>(null!, false, $"Error al procesar la entrada manual: {ex.Message}", null));
-        //    }
-        //}
+       
 
         [HttpPost("manual-entry")]
         public async Task<IActionResult> ManualRegisterVehicleEntry([FromBody] ManualVehicleEntryDto dto) // Usa [FromBody] para recibir JSON
@@ -162,54 +140,6 @@ namespace Web.Controllers.Implementations.Operational
             }
         }
 
-
-        //[HttpGet("{id:int}/ticket")]
-        //public async Task<IActionResult> GenerateTicket(int id)
-        //{
-        //    try
-        //    {
-        //        var dto = await _business.GetRegisteredVehicleFullDtoAsync(id);
-
-        //        if (dto == null)
-        //            return NotFound(new ApiResponse<object>(null, false, "Registro no encontrado.", null));
-
-        //        byte[] pdfBytes = _ticketService.GenerateTicketPdf(dto);
-
-        //        string fileName = $"ticket_{dto.Vehicle}_{dto.EntryDate:yyyyMMdd_HHmm}.pdf";
-        //        return File(pdfBytes, "application/pdf", fileName);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500,
-        //            new ApiResponse<object>(null, false, $"Error al generar el ticket: {ex.Message}", null));
-        //    }
-        //}
-
-
-
-
-        //[HttpGet("by-parking/{parkingId:int}")]
-        //public async Task<IActionResult> GetByParking([FromRoute] int parkingId)
-        //{
-        //    try
-        //    {
-        //        var data = await _business.GetByParkingAsync(parkingId);
-
-        //        if (data == null || !data.Any())
-        //        {
-        //            var responseNull = new ApiResponse<IEnumerable<RegisteredVehiclesDto>>(null, false, "No se encontraron vehículos para este parqueadero.", null);
-        //            return NotFound(responseNull);
-        //        }
-
-        //        var response = new ApiResponse<IEnumerable<RegisteredVehiclesDto>>(data, true, "Ok", null);
-        //        return Ok(response);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        var response = new ApiResponse<IEnumerable<RegisteredVehiclesDto>>(null, false, ex.Message, null);
-        //        return StatusCode(StatusCodes.Status500InternalServerError, response);
-        //    }
-        //}
 
 
     }

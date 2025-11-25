@@ -64,6 +64,42 @@ namespace Data.Implementations.Security
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<IEnumerable<RolFormPermissionGroupedDto>> GetAllGroupedAsync()
+        {
+            return await _context.RolFormPermission
+                .AsNoTracking()
+                .Where(x => x.IsDeleted == false) // solo activos
+                .GroupBy(x => new { x.RolId, RolName = x.Rol.Name })
+                .Select(rg => new RolFormPermissionGroupedDto
+                {
+                    RolId = rg.Key.RolId,
+                    RolName = rg.Key.RolName,
+                    Forms = rg
+                        .GroupBy(x => new { x.FormId, FormName = x.Form.Name })
+                        .Select(fg => new FormPermissionDto
+                        {
+                            FormId = fg.Key.FormId,
+                            FormName = fg.Key.FormName,
+                            Permissions = fg
+                                .Select(p => p.Permission.Name)
+                                .Distinct()
+                                .ToList(),
+                            Modules = fg
+                                .SelectMany(p => p.Form.FormModules)
+                                .Select(m => new ModuleDtoSpecific
+                                {
+                                    Id = m.Module.Id,
+                                    Name = m.Module.Name
+                                })
+                                .Distinct()
+                                .ToList()
+                        })
+                        .ToList()
+                })
+                .ToListAsync();
+        }
+
+
 
     }
 }

@@ -5,6 +5,7 @@ using Utilities.Interfaces.Ticket;
 
 namespace Web.Controllers.Implementations.Operational
 {
+
     [ApiController]
     [Route("api/tickets")]
     public class TicketController : ControllerBase

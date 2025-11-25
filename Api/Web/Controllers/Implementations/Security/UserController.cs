@@ -5,12 +5,14 @@ using Entity.Dtos;
 using Entity.Dtos.Security;
 using Entity.Models;
 using Entity.Models.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Utilities.BackgroundTasks;
 using Utilities.Exceptions;
 
 namespace Web.Controllers.Implementations.Security
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class UserController : RepositoryController<User, UserDto>
