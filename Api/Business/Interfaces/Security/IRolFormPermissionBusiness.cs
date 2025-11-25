@@ -15,6 +15,7 @@ namespace Business.Interfaces.Security
         Task<IEnumerable<RolFormPermissionDto>> GetAllJoinAsync();
 
         Task<RolFormPermissionGroupedDto?> GetAllByRolId(int rolId);
+        Task<IEnumerable<RolFormPermissionGroupedDto>> GetAllGroupedAsync();
 
     }
 

@@ -6,11 +6,14 @@ using Entity.Dtos.Operational;
 using Entity.Dtos.vehicle;
 using Entity.Models;
 using Entity.Models.Operational;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Web.Controllers.Implementations.Operational
 {
+    [Authorize]
+
     [ApiController]
     [Route("api/[controller]")]
     public class VehicleController : RepositoryController<Vehicle, VehicleDto>
