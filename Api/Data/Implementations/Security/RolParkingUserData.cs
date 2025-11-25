@@ -82,5 +82,25 @@ namespace Data.Implementations.Security
                 throw  new DataException("Error al obtener el rol por nombre", ex);
             }
         }
+
+        public async Task<IEnumerable<RolParkingUser>> GetByUserIdAsync(int userId)
+        {
+            try
+            {
+                return await _context.RolParkingUsers
+                    .Include(ru => ru.User)
+                    .Include(ru => ru.Rol)
+                    .Include(ru => ru.Parking)
+                    .Where(ru => ru.UserId == userId
+                              && (ru.IsDeleted == null || ru.IsDeleted == false))
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener roles por usuario {UserId}", userId);
+                throw new DataException("Error al obtener los roles del usuario.", ex);
+            }
+        }
+
     }
 }

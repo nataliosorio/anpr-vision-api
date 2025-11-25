@@ -3,6 +3,7 @@ using Entity.Dtos.Security;
 using Entity.Models;
 using Entity.Models.Security;
 using Microsoft.AspNetCore.Mvc;
+using Utilities.Exceptions;
 
 namespace Web.Controllers.Implementations.Security
 {
@@ -38,5 +39,55 @@ namespace Web.Controllers.Implementations.Security
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
+
+        [HttpGet("by-user/{userId:int}")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<RolParkingUserDto>>>> GetByUserId(int userId)
+        {
+            try
+            {
+                var data = await _business.GetByUserIdAsync(userId);
+
+                if (data == null || !data.Any())
+                {
+                    var responseNull = new ApiResponse<IEnumerable<RolParkingUserDto>>(
+                        null,
+                        false,
+                        "No se encontraron roles para el usuario.",
+                        null
+                    );
+                    return NotFound(responseNull);
+                }
+
+                var response = new ApiResponse<IEnumerable<RolParkingUserDto>>(
+                    data,
+                    true,
+                    "Ok",
+                    null
+                );
+
+                return Ok(response);
+            }
+            catch (BusinessException ex)
+            {
+                var response = new ApiResponse<IEnumerable<RolParkingUserDto>>(
+                    null,
+                    false,
+                    ex.Message,
+                    null
+                );
+                return BadRequest(response);
+            }
+            catch (Exception ex)
+            {
+                var response = new ApiResponse<IEnumerable<RolParkingUserDto>>(
+                    null,
+                    false,
+                    ex.Message,
+                    null
+                );
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
     }
 }
