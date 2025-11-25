@@ -98,8 +98,7 @@ namespace Business.Implementations.Security
                 var current = await _data.GetById(dto.Id);
                 if (current == null)
                     throw new InvalidOperationException($"No existe un módulo con Id {dto.Id}.");
-                if (!current.Asset)
-                    throw new InvalidOperationException("No se puede actualizar un módulo deshabilitado.");
+            
 
                 dto.Name = dto.Name?.Trim();
 
