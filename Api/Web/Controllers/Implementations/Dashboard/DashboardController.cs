@@ -1,10 +1,13 @@
 ﻿using Business.Interfaces.Dashboard;
 using Entity.Dtos.Dashboard;
 using Entity.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers.Implementations.Dashboard
 {
+    [Authorize]
+
     [ApiController]
     [Route("api/[controller]")]
     public class DashboardController : ControllerBase

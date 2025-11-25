@@ -120,5 +120,12 @@ namespace Business.Implementations.Security
                 throw new BusinessException("Error al actualizar RolUser.", ex);
             }
         }
+
+        public async Task<IEnumerable<RolFormPermissionGroupedDto>> GetAllGroupedAsync()
+        {
+            var data = await _data.GetAllGroupedAsync();
+            return data;
+        }
+
     }
 }
