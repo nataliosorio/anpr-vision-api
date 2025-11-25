@@ -29,5 +29,18 @@ namespace Business.Implementations.Security
             var persons = await _data.GetAllByParkingAsync();
             return _mapper.Map<IEnumerable<PersonDto>>(persons);
         }
+
+        public async Task<IEnumerable<PersonDto>> GetUnlinkedAsync()
+        {
+            var persons = await _data.GetUnlinkedAsync();
+            return _mapper.Map<IEnumerable<PersonDto>>(persons);
+        }
+
+        public async Task<IEnumerable<PersonDto>> GetPersonUnlinked()
+        {
+            var persons = await _data.GetPersonUnlinked();
+            return _mapper.Map<IEnumerable<PersonDto>>(persons);
+        }
+
     }
 }

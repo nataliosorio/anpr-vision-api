@@ -1,8 +1,11 @@
 ﻿using Business.Interfaces.Menu;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers.Implementations.Menu
 {
+    [Authorize]
+
     [ApiController]
     [Route("api/[controller]")]
     public class MenuController : ControllerBase

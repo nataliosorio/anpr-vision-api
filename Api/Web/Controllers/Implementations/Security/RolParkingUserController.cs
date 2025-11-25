@@ -7,6 +7,7 @@ using Utilities.Exceptions;
 
 namespace Web.Controllers.Implementations.Security
 {
+
     [ApiController]
     [Route("api/[controller]")]
     public class RolParkingUserController : RepositoryController<RolParkingUser, RolParkingUserDto>
