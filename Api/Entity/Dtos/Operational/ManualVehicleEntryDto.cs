@@ -16,9 +16,8 @@ namespace Entity.Dtos.Operational
         [Range(1, int.MaxValue, ErrorMessage = "El ParkingId debe ser un valor válido.")]
         public int ParkingId { get; set; }
 
-        [Required(ErrorMessage = "El ID del tipo de vehículo es requerido.")]
         [Range(1, int.MaxValue, ErrorMessage = "El TypeVehicleId debe ser mayor a 0.")]
-        public int TypeVehicleId { get; set; }
+        public int? TypeVehicleId { get; set; }
 
         public string? ClientName { get; set; }
 

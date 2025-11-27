@@ -246,6 +246,10 @@ namespace Business.Implementations.Operational
 
         private async Task<ManualEntryResponseDto> HandleNewVehicleForManualEntryAsync(ManualVehicleEntryDto dto, string normalizedPlate)
         {
+            // Validar que TypeVehicleId esté presente para vehículos nuevos
+            if (!dto.TypeVehicleId.HasValue)
+                throw new BusinessException("El tipo de vehículo es requerido para vehículos nuevos.");
+
             using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
             {
                 try
@@ -258,7 +262,7 @@ namespace Business.Implementations.Operational
                     {
                         Plate = normalizedPlate,
                         Color = "",
-                        TypeVehicleId = dto.TypeVehicleId,
+                        TypeVehicleId = dto.TypeVehicleId.Value,
                         ClientId = createdClient.Id
                     };
                     var vehicle = await _vehicleBusiness.Save(newVehicleDto);
