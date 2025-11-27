@@ -3,12 +3,14 @@ using Business.Implementations.Parameter;
 using Business.Interfaces;
 using Business.Interfaces.Operational;
 using Business.Interfaces.Parameter;
+using Business.Interfaces.Security;
 using Data.Implementations;
 using Data.Implementations.Operational;
 using Data.Interfaces.Operational;
 using Entity.Dtos.Dashboard;
 using Entity.Dtos.Operational;
 using Entity.Dtos.Parameter;
+using Entity.Dtos.Security;
 using Entity.Enums;
 using Entity.Models.Operational;
 using Entity.Models.Parameter;
@@ -18,9 +20,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 using Utilities.Exceptions;
 using Utilities.Helpers.Validators;
 using Utilities.Implementations.Ticket;
+using Utilities.Interfaces;
 using Utilities.Interfaces.Ticket;
 using Utilities.Pdf;
 
@@ -36,7 +40,13 @@ namespace Business.Implementations.Operational
         private readonly IMapper _mapper;
         private readonly ITypeVehicleBusiness _typeVehicleBusiness;
         private readonly ITicketService _ticketService;
-        public RegisteredVehicleBusiness(IRegisteredVehiclesData data, IMapper mapper, IVehicleBusiness vehicleBusiness,ITypeVehicleBusiness typeVehicleBusiness, ISectorsBusiness sectorsBusiness, ISlotsBusiness slotsBusiness, ITicketService ticketService)
+        private readonly IPersonBusiness _personBusiness;
+        private readonly IUserBusiness _userBusiness;
+        private readonly IRolBusiness _rolBusiness;
+        private readonly IRolParkingUserBusiness _rolParkingUserBusiness;
+        private readonly IClientBusiness _clientBusiness;
+        private readonly IPasswordHasher _passwordHasher;
+        public RegisteredVehicleBusiness(IRegisteredVehiclesData data, IMapper mapper, IVehicleBusiness vehicleBusiness,ITypeVehicleBusiness typeVehicleBusiness, ISectorsBusiness sectorsBusiness, ISlotsBusiness slotsBusiness, ITicketService ticketService, IPersonBusiness personBusiness, IUserBusiness userBusiness, IRolBusiness rolBusiness, IRolParkingUserBusiness rolParkingUserBusiness, IClientBusiness clientBusiness, IPasswordHasher passwordHasher)
             : base(data, mapper)
         {
             _data = data;
@@ -46,6 +56,12 @@ namespace Business.Implementations.Operational
             _slotsBusiness = slotsBusiness;
             _typeVehicleBusiness = typeVehicleBusiness;
             _ticketService = ticketService;
+            _personBusiness = personBusiness;
+            _userBusiness = userBusiness;
+            _rolBusiness = rolBusiness;
+            _rolParkingUserBusiness = rolParkingUserBusiness;
+            _clientBusiness = clientBusiness;
+            _passwordHasher = passwordHasher;
         }
 
 
@@ -196,49 +212,101 @@ namespace Business.Implementations.Operational
 
         public async Task<ManualEntryResponseDto> ManualRegisterVehicleEntryAsync(ManualVehicleEntryDto dto)
         {
-            try
+            using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
             {
-                string normalizedPlate = dto.Plate.Trim().ToUpper();
-                var vehicle = await _vehicleBusiness.GetVehicleByPlate(normalizedPlate);
-
-                if (vehicle == null)
+                try
                 {
-                    var newVehicleDto = new VehicleDto
+                    // 1) Crear Person
+                    var personDto = new PersonDto
                     {
-                        Plate = normalizedPlate,
-                        Color = "",
-                        TypeVehicleId = dto.TypeVehicleId,
-                        ClientId = 3
+                        FirstName = dto.ClientName,
+                        LastName = "",
+                        Email = dto.ClientEmail,
+                        Document = "",
+                        Phone = "",
+                        Age = 0
                     };
+                    var createdPerson = await _personBusiness.Save(personDto);
 
-                    vehicle = await _vehicleBusiness.Save(newVehicleDto);
+                    // 2) Crear User
+                    string defaultPassword = "TempPass123!"; // Contraseña temporal
+                    var userDto = new UserDto
+                    {
+                        Username = Guid.NewGuid().ToString("N"), // Username único
+                        Email = dto.ClientEmail,
+                        Password = _passwordHasher.HashPassword(defaultPassword),
+                        PersonId = createdPerson.Id
+                    };
+                    var createdUser = await _userBusiness.Save(userDto);
+
+                    // 3) Crear Client
+                    var clientDto = new ClientDto
+                    {
+                        PersonId = createdPerson.Id,
+                        Name = dto.ClientName
+                    };
+                    var createdClient = await _clientBusiness.Save(clientDto);
+
+                    // 4) Obtener rol "Usuario" y asignar RolParkingUser
+                    var userRole = await _rolBusiness.GetByNameAsync("Usuario");
+                    if (userRole == null)
+                        throw new BusinessException("El rol 'Usuario' no existe en el sistema.");
+
+                    var rolParkingUserDto = new RolParkingUserDto
+                    {
+                        UserId = createdUser.Id,
+                        RolId = userRole.Id,
+                        ParkingId = dto.ParkingId
+                    };
+                    await _rolParkingUserBusiness.Save(rolParkingUserDto);
+
+                    // 5) Procesar vehículo
+                    string normalizedPlate = dto.Plate.Trim().ToUpper();
+                    var vehicle = await _vehicleBusiness.GetVehicleByPlate(normalizedPlate);
+
+                    if (vehicle == null)
+                    {
+                        var newVehicleDto = new VehicleDto
+                        {
+                            Plate = normalizedPlate,
+                            Color = "",
+                            TypeVehicleId = dto.TypeVehicleId,
+                            ClientId = createdClient.Id
+                        };
+
+                        vehicle = await _vehicleBusiness.Save(newVehicleDto);
+                    }
+
+                    bool hasActiveEntry = await _data.GetActiveRegisterByVehicleIdAsync(vehicle.Id) != null;
+                    if (hasActiveEntry)
+                        throw new BusinessException($"El vehículo con placa {normalizedPlate} ya tiene una entrada activa.");
+
+                    // 6) Registrar vehículo con slot
+                    RegisteredVehiclesDto registeredVehicle = await RegisterVehicleWithSlotAsync(vehicle.Id, dto.ParkingId);
+
+                    var fullVehicle = await _vehicleBusiness.GetById(vehicle.Id);
+
+                    registeredVehicle.Vehicle = fullVehicle.Plate;
+                    registeredVehicle.Sector = fullVehicle.TypeVehicle;
+
+                    // 7) Generar Ticket usando el nuevo servicio
+                    byte[] pdfBytes = _ticketService.GenerateTicketPdf(registeredVehicle);
+
+                    // 8) Armar respuesta final
+                    var responseDto = _mapper.Map<ManualEntryResponseDto>(registeredVehicle);
+                    responseDto.TicketPdfBytes = pdfBytes;
+
+                    // Completar la transacción
+                    scope.Complete();
+
+                    return responseDto;
                 }
-
-                bool hasActiveEntry = await _data.GetActiveRegisterByVehicleIdAsync(vehicle.Id) != null;
-                if (hasActiveEntry)
-                    throw new BusinessException($"El vehículo con placa {normalizedPlate} ya tiene una entrada activa.");
-
-                // 1) Registrar vehículo con slot
-                RegisteredVehiclesDto registeredVehicle = await RegisterVehicleWithSlotAsync(vehicle.Id, dto.ParkingId);
-
-                var fullVehicle = await _vehicleBusiness.GetById(vehicle.Id);
-
-                registeredVehicle.Vehicle = fullVehicle.Plate;
-                registeredVehicle.Sector = fullVehicle.TypeVehicle;
-
-                // 2) Generar Ticket usando el nuevo servicio
-                byte[] pdfBytes = _ticketService.GenerateTicketPdf(registeredVehicle);
-
-                // 3) Armar respuesta final
-                var responseDto = _mapper.Map<ManualEntryResponseDto>(registeredVehicle);
-                responseDto.TicketPdfBytes = pdfBytes;
-
-                return responseDto;
-            }
-            catch (Exception ex)
-            {
-                if (ex is BusinessException) throw;
-                throw new BusinessException($"Error en el registro manual para la placa {dto.Plate}: {ex.Message}", ex);
+                catch (Exception ex)
+                {
+                    // El scope se desechará sin Complete, haciendo rollback
+                    if (ex is BusinessException) throw;
+                    throw new BusinessException($"Error en el registro manual para la placa {dto.Plate}: {ex.Message}", ex);
+                }
             }
         }
 
