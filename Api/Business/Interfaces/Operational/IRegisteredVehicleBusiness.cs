@@ -23,9 +23,11 @@ namespace Business.Interfaces.Operational
         Task<RegisteredVehiclesDto> RegisterVehicleExitAsync(int vehicleId);
 
 
-        //  método para el registro manual por placa 
+        //  método para el registro manual por placa
         //Task<RegisteredVehiclesDto> ManualRegisterVehicleEntryAsync(ManualVehicleEntryDto dto);
         Task<ManualEntryResponseDto> ManualRegisterVehicleEntryAsync(ManualVehicleEntryDto dto);
+
+        Task<VehicleValidationResultDto> ValidateVehiclePlateAsync(VehicleValidationRequestDto request);
 
         Task<RegisteredVehiclesDto?> GetRegisteredVehicleFullDtoAsync(int id);
 
