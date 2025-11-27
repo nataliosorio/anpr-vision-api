@@ -114,6 +114,25 @@ namespace Web.Controllers.Implementations.Operational
 
        
 
+        [HttpPost("validate-plate")]
+        public async Task<IActionResult> ValidateVehiclePlate([FromBody] VehicleValidationRequestDto request)
+        {
+            try
+            {
+                var result = await _business.ValidateVehiclePlateAsync(request);
+                return Ok(new ApiResponse<VehicleValidationResultDto>(result, true, "Validación completada.", null));
+            }
+            catch (BusinessException bex)
+            {
+                return BadRequest(new ApiResponse<VehicleValidationResultDto>(null!, false, bex.Message, null));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new ApiResponse<VehicleValidationResultDto>(null!, false, $"Error al validar placa: {ex.Message}", null));
+            }
+        }
+
         [HttpPost("manual-entry")]
         public async Task<IActionResult> ManualRegisterVehicleEntry([FromBody] ManualVehicleEntryDto dto) // Usa [FromBody] para recibir JSON
         {
