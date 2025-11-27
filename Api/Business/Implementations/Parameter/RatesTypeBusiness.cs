@@ -97,8 +97,7 @@ namespace Business.Implementations.Parameter
                 var current = await _data.GetById(dto.Id)
                              ?? throw new InvalidOperationException("El tipo de tarifa seleccionado no existe.");
 
-                if (current.Asset == false)
-                    throw new InvalidOperationException("No se puede actualizar un tipo de tarifa deshabilitado.");
+              
 
                 // Duplicado en otros registros (case-insensitive)
                 var existsOther = await _data.ExistsAsync(rt =>

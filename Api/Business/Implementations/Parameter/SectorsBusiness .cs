@@ -193,8 +193,8 @@ namespace Business.Implementations.Parameter
                 if (dto.ZonesId <= 0)
                     throw new ArgumentException("El campo ZonesId debe ser mayor a 0.");
 
-                if (!sectorExistente.Asset)
-                    throw new InvalidOperationException("No se puede actualizar un sector deshabilitado.");
+                //if (!sectorExistente.Asset)
+                //    throw new InvalidOperationException("No se puede actualizar un sector deshabilitado.");
 
                 // Duplicado por NOMBRE en la misma zona, excluyendo este mismo Id (null-safe)
                 var sectoresMismaZona = await _data.GetAllByZoneId(dto.ZonesId) ?? Enumerable.Empty<Sectors>();

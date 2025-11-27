@@ -56,34 +56,31 @@ namespace Data.Implementations.Parameter
 
             var query = _context.Slots
                 .AsNoTracking()
-                .Include(s => s.Sectors)
-                    .ThenInclude(se => se.Zones)
-                .Where(s => s.IsDeleted == false || s.IsDeleted == null);
+                .Where(s => s.IsDeleted != true); 
 
-            // 👇 Solo aplica el filtro si hay Parking en el contexto
             if (parkingId.HasValue)
             {
-                query = query.Where(s => s.Sectors.Zones.ParkingId == parkingId.Value);
+                query = query.Where(s =>
+                    s.Sectors != null &&
+                    s.Sectors.Zones != null &&
+                    s.Sectors.Zones.ParkingId == parkingId.Value
+                );
             }
 
             return await query
-                .Select(p => new SlotsDto
+                .Select(s => new SlotsDto
                 {
-                    // --- BaseDto ---
-                    Id = p.Id,
-                    Asset = p.Asset,
-                    IsDeleted = p.IsDeleted,
-
-                    // --- GenericDto ---
-                    Name = p.Name,
-
-                    // --- SlotsDto ---
-                    IsAvailable = p.IsAvailable,
-                    SectorsId = p.SectorsId,
-                    Sectors = p.Sectors != null ? p.Sectors.Name : null
+                    Id = s.Id,
+                    Asset = s.Asset,
+                    IsDeleted = s.IsDeleted,
+                    Name = s.Name,
+                    IsAvailable = s.IsAvailable,
+                    SectorsId = s.SectorsId,
+                    Sectors = s.Sectors != null ? s.Sectors.Name : null
                 })
                 .ToListAsync();
         }
+
 
 
         public async Task<IEnumerable<Slots>> GetAllBySectorId(int sectorId)

@@ -27,5 +27,8 @@ namespace Business.Interfaces.Operational
         //Task<RegisteredVehiclesDto> ManualRegisterVehicleEntryAsync(ManualVehicleEntryDto dto);
         Task<ManualEntryResponseDto> ManualRegisterVehicleEntryAsync(ManualVehicleEntryDto dto);
 
+        Task<RegisteredVehiclesDto?> GetRegisteredVehicleFullDtoAsync(int id);
+
+
     }
 }

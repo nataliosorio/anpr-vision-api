@@ -147,8 +147,7 @@ namespace Business.Implementations.Security
                 if (current == null)
                     throw new InvalidOperationException($"No existe un rol con Id {dto.Id}.");
 
-                if (current.Asset == false)
-                    throw new InvalidOperationException("No se puede actualizar un rol deshabilitado.");
+              
 
                 // Intentar obtener por nombre de forma segura (GetByNameAsync debería devolver null si no encuentra)
                 Rol? existing = null;

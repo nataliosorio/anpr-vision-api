@@ -10,5 +10,8 @@ namespace Data.Interfaces.Security
     public interface IPersonData : IRepositoryData<Person>
     {
         Task<IEnumerable<Person>> GetAllByParkingAsync();
+        Task<IEnumerable<Person>> GetUnlinkedAsync();
+        Task<IEnumerable<Person>> GetPersonUnlinked();
+
     }
 }

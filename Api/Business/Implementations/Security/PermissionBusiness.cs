@@ -92,8 +92,7 @@ namespace Business.Implementations.Security
                 var current = await _data.GetById(dto.Id)
                               ?? throw new InvalidOperationException($"No existe un permiso con Id {dto.Id}.");
 
-                if (current.Asset == false)
-                    throw new InvalidOperationException("No se puede actualizar un permiso deshabilitado.");
+              
 
                 // Duplicado en otros registros (case-insensitive)
                 var existsOther = await _data.ExistsAsync(p =>
