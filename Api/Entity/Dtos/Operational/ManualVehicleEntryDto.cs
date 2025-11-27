@@ -19,5 +19,12 @@ namespace Entity.Dtos.Operational
         [Required(ErrorMessage = "El ID del tipo de vehículo es requerido.")]
         [Range(1, int.MaxValue, ErrorMessage = "El TypeVehicleId debe ser mayor a 0.")]
         public int TypeVehicleId { get; set; }
+
+        [Required(ErrorMessage = "El nombre del cliente es requerido.")]
+        public string ClientName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El correo del cliente es requerido.")]
+        [EmailAddress(ErrorMessage = "El correo debe tener un formato válido.")]
+        public string ClientEmail { get; set; } = string.Empty;
     }
 }
