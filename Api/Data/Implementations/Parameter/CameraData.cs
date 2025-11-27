@@ -25,7 +25,7 @@ namespace Data.Implementations.Parameter
             : base(context, configuration, auditService, currentUserService, mapper, parkingContext)
         {
             _logger = logger;
-            
+
 
 
 
@@ -89,11 +89,11 @@ namespace Data.Implementations.Parameter
             // 1. Iniciamos el Queryable sin tracking para lectura rápida
             var query = _context.Cameras.AsNoTracking();
 
-  
+
             // "Que no estén eliminados": Usamos != true para cubrir 'false' y 'null'
             query = query.Where(c => c.IsDeleted != true);
 
-      
+
 
             // 3. Filtro de Tenancy (Contexto del Parking)
             if (_parkingContext.ParkingId.HasValue)
