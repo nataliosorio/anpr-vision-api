@@ -11,25 +11,29 @@
             {
                 options.AddPolicy("CorsPolicy", policy =>
                 {
-                    policy
-                        .SetIsOriginAllowed(origin =>
-                        {
-                            if (string.IsNullOrEmpty(origin))
-                                return true; // permite origin null (Android WebView)
+                    policy.SetIsOriginAllowed(origin =>
+                    {
+                        if (string.IsNullOrEmpty(origin))
+                            return true; // Android WebView nativa sin origin
 
-                            // Si coincide con uno de los configurados, permitir
-                            if (origenesPermitidos?.Contains(origin) == true)
-                                return true;
+                        // 🔹 Permitir cualquier localhost (dev, live reload, etc.)
+                        if (origin.Contains("localhost"))
+                            return true;
 
-                            // Capacitor/Ionic origins
-                            if (origin.StartsWith("capacitor://") || origin.StartsWith("ionic://"))
-                                return true;
+                        if (origenesPermitidos?.Any(o =>
+                                string.Equals(o, origin, StringComparison.OrdinalIgnoreCase)) == true)
+                            return true;
 
-                            return false;
-                        })
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials();
+                        // 🔹 Capacitor/Ionic en APK final
+                        if (origin.StartsWith("capacitor://") || origin.StartsWith("ionic://"))
+                            return true;
+
+                        return false;
+                    })
+                     .AllowAnyHeader()
+                     .AllowAnyMethod()
+                     .AllowCredentials();
+
                 });
             });
 

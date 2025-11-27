@@ -144,5 +144,19 @@ namespace Business.Implementations.Security
         {
             return await _data.PermanentDelete(id);
         }
+        public async Task<IEnumerable<RolParkingUserDto>> GetByUserIdAsync(int userId)
+        {
+            try
+            {
+                var entities = await _data.GetByUserIdAsync(userId);
+                return _mapper.Map<IEnumerable<RolParkingUserDto>>(entities);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener roles por usuario {UserId}", userId);
+                throw new BusinessException("Error al obtener los roles del usuario.", ex);
+            }
+        }
+
     }
 }

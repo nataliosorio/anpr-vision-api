@@ -12,5 +12,7 @@ namespace Business.Interfaces.Security
     {
         public Task<IEnumerable<RolParkingUserDto>> GetAllJoinAsync();
         Task<bool> ExistsAsync(int userId, int roleId);
+        Task<IEnumerable<RolParkingUserDto>> GetByUserIdAsync(int userId);
+
     }
 }

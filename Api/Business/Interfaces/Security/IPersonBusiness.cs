@@ -11,5 +11,8 @@ namespace Business.Interfaces.Security
     public interface IPersonBusiness : IRepositoryBusiness<Person, PersonDto>
     {
         Task<IEnumerable<PersonDto>> GetAllByParkingAsync();
+        Task<IEnumerable<PersonDto>> GetUnlinkedAsync();
+        Task<IEnumerable<PersonDto>> GetPersonUnlinked();
+
     }
 }

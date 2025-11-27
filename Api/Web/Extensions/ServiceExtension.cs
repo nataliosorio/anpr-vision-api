@@ -46,7 +46,9 @@ using Utilities.Exceptions;
 using Utilities.Helpers;
 using Utilities.Helpers.Validators;
 using Utilities.Implementations;
+using Utilities.Implementations.Ticket;
 using Utilities.Interfaces;
+using Utilities.Interfaces.Ticket;
 using Web.Services;
 
 namespace Web.Extensions
@@ -190,6 +192,8 @@ namespace Web.Extensions
             services.AddTransient<Validations>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();
             services.AddScoped<IPasswordReset, PasswordResett>();
+           services.AddScoped<ITicketService, TicketService>();
+
             return services;
         }
     }
