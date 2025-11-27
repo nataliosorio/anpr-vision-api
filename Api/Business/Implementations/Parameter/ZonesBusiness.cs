@@ -121,8 +121,8 @@ namespace Business.Implementations.Parameter
                 if (current == null)
                     throw new InvalidOperationException($"No existe una zona con Id {dto.Id}.");
 
-                if (!current.Asset)
-                    throw new InvalidOperationException("No se puede actualizar una zona deshabilitada.");
+                //if (!current.Asset)
+                //    throw new InvalidOperationException("No se puede actualizar una zona deshabilitada.");
 
                 // Duplicado en otros registros del mismo parking (excluir propio Id y eliminados)
                 var existsOther = await _data.ExistsAsync(z =>
@@ -137,6 +137,8 @@ namespace Business.Implementations.Parameter
                 // Actualizar la entidad existente (mantenemos IsDeleted del registro actual)
                 current.Name = dto.Name!;
                 current.ParkingId = dto.ParkingId;
+                current.Asset = dto.Asset ?? current.Asset;
+
                 // current.IsDeleted = current.IsDeleted; // mantener igual
 
                 await _data.Update(current);

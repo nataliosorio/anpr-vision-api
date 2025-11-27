@@ -57,5 +57,29 @@ namespace Data.Implementations.Security
             }
         }
 
+        public async Task<IEnumerable<Person>> GetUnlinkedAsync()
+        {
+            var persons = await _context.Persons
+                .AsNoTracking()
+                .Where(p => (p.IsDeleted == false || p.IsDeleted == null))
+                .Where(p => !_context.Clients.Any(c => c.PersonId == p.Id)) 
+                .ToListAsync();
+
+            return persons;
+        }
+
+        public async Task<IEnumerable<Person>> GetPersonUnlinked()
+        {
+            var persons = await _context.Persons
+               .AsNoTracking()
+               .Where(p => (p.IsDeleted == false || p.IsDeleted == null))
+               .Where(p => !_context.Users.Any(u => u.PersonId == p.Id))
+               .ToListAsync();
+
+            return persons;
+
+        }
+
+
     }
 }

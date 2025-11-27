@@ -21,6 +21,7 @@ namespace Data.Interfaces.Operational
         Task<List<OccupancyItemDto>> GetSectorOccupancyByZoneAsync(int zoneId);
         Task<IEnumerable<RegisteredVehiclesDto>> GetByParkingAsync(int parkingId);
         Task<RegisteredVehicles?> GetActiveRegisterByVehicleIdAsync(int vehicleId);
+        Task<RegisteredVehicles?> GetFullByIdAsync(int id);
 
     }
 }

@@ -12,5 +12,7 @@ namespace Data.Interfaces.Security
         public Task<IEnumerable<RolParkingUser>> GetAllJoinAsync();
 
         Task<bool> ExistsAsync(int userId, int roleId);
+        Task<IEnumerable<RolParkingUser>> GetByUserIdAsync(int userId);
+
     }
 }

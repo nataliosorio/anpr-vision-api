@@ -3,10 +3,13 @@ using Business.Interfaces.Operational;
 using Entity.Dtos.Operational;
 using Entity.Models;
 using Entity.Models.Operational;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers.Implementations.Operational
 {
+    [Authorize]
+
     [ApiController]
     [Route("api/[controller]")]
     public class BlackListController : RepositoryController<BlackList,BlackListDto>

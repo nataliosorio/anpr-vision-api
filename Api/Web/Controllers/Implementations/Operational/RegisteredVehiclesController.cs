@@ -5,17 +5,22 @@ using Entity.Dtos.Operational;
 using Entity.Models;
 using Entity.Models.Operational;
 using Microsoft.AspNetCore.Mvc;
+using QuestPDF.Fluent;
 using Utilities.Exceptions;
+using Utilities.Interfaces.Ticket;
+using Utilities.Pdf;
 
 namespace Web.Controllers.Implementations.Operational
 {
     public class RegisteredVehiclesController: RepositoryController<RegisteredVehicles, RegisteredVehiclesDto>
     {
         private readonly IRegisteredVehicleBusiness _business;
-        public RegisteredVehiclesController(IRegisteredVehicleBusiness business)
+        private readonly ITicketService _ticketService;
+        public RegisteredVehiclesController(IRegisteredVehicleBusiness business, ITicketService ticketService)
             : base(business)
         {
             _business = business;
+            _ticketService = ticketService;
         }
 
         [HttpGet("join")]
@@ -107,29 +112,7 @@ namespace Web.Controllers.Implementations.Operational
             }
         }
 
-        //[HttpPost("manual-entry")]
-        //public async Task<IActionResult> ManualRegisterVehicleEntry([FromBody] ManualVehicleEntryDto dto) 
-        //{
-        //    try
-        //    {
-
-
-        //        // Llama al método de negocio con el DTO
-        //        RegisteredVehiclesDto data = await _business.ManualRegisterVehicleEntryAsync(dto);
-
-        //        return Ok(new ApiResponse<RegisteredVehiclesDto>(data, true, "Entrada manual registrada correctamente.", null));
-        //    }
-
-        //    catch (BusinessException bex)
-        //    {
-        //        return BadRequest(new ApiResponse<RegisteredVehiclesDto>(null!, false, bex.Message, null));
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(StatusCodes.Status500InternalServerError,
-        //            new ApiResponse<RegisteredVehiclesDto>(null!, false, $"Error al procesar la entrada manual: {ex.Message}", null));
-        //    }
-        //}
+       
 
         [HttpPost("manual-entry")]
         public async Task<IActionResult> ManualRegisterVehicleEntry([FromBody] ManualVehicleEntryDto dto) // Usa [FromBody] para recibir JSON
@@ -157,29 +140,6 @@ namespace Web.Controllers.Implementations.Operational
             }
         }
 
-
-        //[HttpGet("by-parking/{parkingId:int}")]
-        //public async Task<IActionResult> GetByParking([FromRoute] int parkingId)
-        //{
-        //    try
-        //    {
-        //        var data = await _business.GetByParkingAsync(parkingId);
-
-        //        if (data == null || !data.Any())
-        //        {
-        //            var responseNull = new ApiResponse<IEnumerable<RegisteredVehiclesDto>>(null, false, "No se encontraron vehículos para este parqueadero.", null);
-        //            return NotFound(responseNull);
-        //        }
-
-        //        var response = new ApiResponse<IEnumerable<RegisteredVehiclesDto>>(data, true, "Ok", null);
-        //        return Ok(response);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        var response = new ApiResponse<IEnumerable<RegisteredVehiclesDto>>(null, false, ex.Message, null);
-        //        return StatusCode(StatusCodes.Status500InternalServerError, response);
-        //    }
-        //}
 
 
     }

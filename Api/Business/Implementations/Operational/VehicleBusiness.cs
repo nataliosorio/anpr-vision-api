@@ -146,15 +146,7 @@ namespace Business.Implementations.Operational
             return returnVehicle;
         }
 
-        //public async Task<IEnumerable<VehicleDto>> GetVehiclesByClientIdAsync(int clientId)
-        //{
-        //    if (clientId <= 0)
-        //        throw new ArgumentException("ClientId inválido.");
-
-        //    var data = await _data.GetVehiclesByClientIdAsync(clientId);
-
-        //    return data;
-        //}
+ 
 
         public async Task<IEnumerable<VehicleWithStatusDto>> GetVehiclesWithStatusByClientIdAsync(int clientId)
         {
