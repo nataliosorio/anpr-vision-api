@@ -3,24 +3,29 @@ using Business.Implementations.Parameter;
 using Business.Interfaces;
 using Business.Interfaces.Operational;
 using Business.Interfaces.Parameter;
+using Business.Interfaces.Security;
 using Data.Implementations;
 using Data.Implementations.Operational;
 using Data.Interfaces.Operational;
 using Entity.Dtos.Dashboard;
 using Entity.Dtos.Operational;
 using Entity.Dtos.Parameter;
+using Entity.Dtos.Security;
 using Entity.Enums;
 using Entity.Models.Operational;
 using Entity.Models.Parameter;
+using Microsoft.Extensions.Logging;
 using QuestPDF.Fluent;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 using Utilities.Exceptions;
 using Utilities.Helpers.Validators;
 using Utilities.Implementations.Ticket;
+using Utilities.Interfaces;
 using Utilities.Interfaces.Ticket;
 using Utilities.Pdf;
 
@@ -36,7 +41,16 @@ namespace Business.Implementations.Operational
         private readonly IMapper _mapper;
         private readonly ITypeVehicleBusiness _typeVehicleBusiness;
         private readonly ITicketService _ticketService;
-        public RegisteredVehicleBusiness(IRegisteredVehiclesData data, IMapper mapper, IVehicleBusiness vehicleBusiness,ITypeVehicleBusiness typeVehicleBusiness, ISectorsBusiness sectorsBusiness, ISlotsBusiness slotsBusiness, ITicketService ticketService)
+        private readonly IPersonBusiness _personBusiness;
+        private readonly IUserBusiness _userBusiness;
+        private readonly IRolBusiness _rolBusiness;
+        private readonly IRolParkingUserBusiness _rolParkingUserBusiness;
+        private readonly IClientBusiness _clientBusiness;
+        private readonly IPasswordHasher _passwordHasher;
+        private readonly IBlackListBusiness _blackListBusiness;
+        private readonly IEmailService _emailService;
+        private readonly ILogger<RegisteredVehicleBusiness> _logger;
+        public RegisteredVehicleBusiness(IRegisteredVehiclesData data, IMapper mapper, IVehicleBusiness vehicleBusiness,ITypeVehicleBusiness typeVehicleBusiness, ISectorsBusiness sectorsBusiness, ISlotsBusiness slotsBusiness, ITicketService ticketService, IPersonBusiness personBusiness, IUserBusiness userBusiness, IRolBusiness rolBusiness, IRolParkingUserBusiness rolParkingUserBusiness, IClientBusiness clientBusiness, IPasswordHasher passwordHasher, IBlackListBusiness blackListBusiness, IEmailService emailService, ILogger<RegisteredVehicleBusiness> logger)
             : base(data, mapper)
         {
             _data = data;
@@ -46,6 +60,15 @@ namespace Business.Implementations.Operational
             _slotsBusiness = slotsBusiness;
             _typeVehicleBusiness = typeVehicleBusiness;
             _ticketService = ticketService;
+            _personBusiness = personBusiness;
+            _userBusiness = userBusiness;
+            _rolBusiness = rolBusiness;
+            _rolParkingUserBusiness = rolParkingUserBusiness;
+            _clientBusiness = clientBusiness;
+            _passwordHasher = passwordHasher;
+            _blackListBusiness = blackListBusiness;
+            _emailService = emailService;
+            _logger = logger;
         }
 
 
@@ -203,37 +226,16 @@ namespace Business.Implementations.Operational
 
                 if (vehicle == null)
                 {
-                    var newVehicleDto = new VehicleDto
-                    {
-                        Plate = normalizedPlate,
-                        Color = "",
-                        TypeVehicleId = dto.TypeVehicleId,
-                        ClientId = 3
-                    };
+                    // Validar que se proporcionen datos del cliente para vehículo nuevo
+                    if (string.IsNullOrWhiteSpace(dto.ClientName) || string.IsNullOrWhiteSpace(dto.ClientEmail))
+                        throw new BusinessException("Para vehículos nuevos, se requieren el nombre y correo del cliente.");
 
-                    vehicle = await _vehicleBusiness.Save(newVehicleDto);
+                    return await HandleNewVehicleForManualEntryAsync(dto, normalizedPlate);
                 }
-
-                bool hasActiveEntry = await _data.GetActiveRegisterByVehicleIdAsync(vehicle.Id) != null;
-                if (hasActiveEntry)
-                    throw new BusinessException($"El vehículo con placa {normalizedPlate} ya tiene una entrada activa.");
-
-                // 1) Registrar vehículo con slot
-                RegisteredVehiclesDto registeredVehicle = await RegisterVehicleWithSlotAsync(vehicle.Id, dto.ParkingId);
-
-                var fullVehicle = await _vehicleBusiness.GetById(vehicle.Id);
-
-                registeredVehicle.Vehicle = fullVehicle.Plate;
-                registeredVehicle.Sector = fullVehicle.TypeVehicle;
-
-                // 2) Generar Ticket usando el nuevo servicio
-                byte[] pdfBytes = _ticketService.GenerateTicketPdf(registeredVehicle);
-
-                // 3) Armar respuesta final
-                var responseDto = _mapper.Map<ManualEntryResponseDto>(registeredVehicle);
-                responseDto.TicketPdfBytes = pdfBytes;
-
-                return responseDto;
+                else
+                {
+                    return await HandleExistingVehicleForManualEntryAsync(dto, vehicle, normalizedPlate);
+                }
             }
             catch (Exception ex)
             {
@@ -242,6 +244,193 @@ namespace Business.Implementations.Operational
             }
         }
 
+        private async Task<ManualEntryResponseDto> HandleNewVehicleForManualEntryAsync(ManualVehicleEntryDto dto, string normalizedPlate)
+        {
+            // Validar que TypeVehicleId esté presente para vehículos nuevos
+            if (!dto.TypeVehicleId.HasValue)
+                throw new BusinessException("El tipo de vehículo es requerido para vehículos nuevos.");
+
+            using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+            {
+                try
+                {
+                    // Crear cliente, usuario, etc.
+                    var createdClient = await CreateClientForManualEntryAsync(dto);
+
+                    // Crear vehículo
+                    var newVehicleDto = new VehicleDto
+                    {
+                        Plate = normalizedPlate,
+                        Color = "",
+                        TypeVehicleId = dto.TypeVehicleId.Value,
+                        ClientId = createdClient.Id
+                    };
+                    var vehicle = await _vehicleBusiness.Save(newVehicleDto);
+
+                    // Registrar entrada
+                    var response = await RegisterManualEntryAsync(vehicle, dto.ParkingId);
+                    scope.Complete();
+                    return response;
+                }
+                catch
+                {
+                    // Rollback
+                    throw;
+                }
+            }
+        }
+
+        private async Task<ManualEntryResponseDto> HandleExistingVehicleForManualEntryAsync(ManualVehicleEntryDto dto, VehicleDto vehicle, string normalizedPlate)
+        {
+            // Validar lista negra
+            bool isBlacklisted = await _blackListBusiness.ExistsAsync(b => b.VehicleId == vehicle.Id);
+            if (isBlacklisted)
+                throw new BusinessException($"El vehículo con placa {normalizedPlate} está en la lista negra.");
+
+            // Validar entrada activa
+            bool hasActiveEntry = await _data.GetActiveRegisterByVehicleIdAsync(vehicle.Id) != null;
+            if (hasActiveEntry)
+                throw new BusinessException($"El vehículo con placa {normalizedPlate} ya tiene una entrada activa.");
+
+            // Registrar entrada (sin transacción ya que no crea entidades)
+            return await RegisterManualEntryAsync(vehicle, dto.ParkingId);
+        }
+
+        private async Task<ClientDto> CreateClientForManualEntryAsync(ManualVehicleEntryDto dto)
+        {
+            // 1) Crear Person
+            var personDto = new PersonDto
+            {
+                FirstName = dto.ClientName,
+                LastName = "",
+                Email = dto.ClientEmail,
+                Document = "",
+                Phone = "",
+                Age = 0
+            };
+            var createdPerson = await _personBusiness.Save(personDto);
+
+            // 2) Crear User
+            string defaultPassword = dto.Plate.Trim().ToUpper(); // Contraseña = placa en mayúsculas
+
+            var userDto = new UserDto
+            {
+                Username = dto.ClientEmail.Trim(),
+                Email = dto.ClientEmail.Trim(),
+                Password = defaultPassword, // TEXTO PLANO, se hashea en UserBusiness
+                PersonId = createdPerson.Id
+            };
+
+            var createdUser = await _userBusiness.Save(userDto);
+
+            // 3) Crear Client
+            var clientDto = new ClientDto
+            {
+                PersonId = createdPerson.Id,
+                Name = dto.ClientName
+            };
+            var createdClient = await _clientBusiness.Save(clientDto);
+
+            // 4) Obtener rol "Usuario" y asignar RolParkingUser
+            var userRole = await _rolBusiness.GetByNameAsync("Usuario");
+            if (userRole == null)
+                throw new BusinessException("El rol 'Usuario' no existe en el sistema.");
+
+            var rolParkingUserDto = new RolParkingUserDto
+            {
+                UserId = createdUser.Id,
+                RolId = userRole.Id,
+                ParkingId = dto.ParkingId
+            };
+            await _rolParkingUserBusiness.Save(rolParkingUserDto);
+
+            // Enviar correo
+            try
+            {
+                string message = $"Bienvenido {dto.ClientName} a ANPR Vision.\n\nYa puedes ingresar a la app para tener un seguimiento de tu vehículo.\n\nCredenciales:\nNombre de usuario: {createdUser.Username}\nContraseña: {defaultPassword}\n\nRecomendamos cambiar tu contraseña lo antes posible por seguridad.";
+                await _emailService.SendEmailAsync(dto.ClientEmail, message);
+            }
+            catch (Exception emailEx)
+            {
+                _logger.LogWarning(emailEx, "Error enviando correo de bienvenida a {Email}", dto.ClientEmail);
+                // No fallar la operación por error en email
+            }
+
+            return createdClient;
+        }
+
+        private async Task<ManualEntryResponseDto> RegisterManualEntryAsync(VehicleDto vehicle, int parkingId)
+        {
+            // Registrar vehículo con slot
+            RegisteredVehiclesDto registeredVehicle = await RegisterVehicleWithSlotAsync(vehicle.Id, parkingId);
+
+            var fullVehicle = await _vehicleBusiness.GetById(vehicle.Id);
+            registeredVehicle.Vehicle = fullVehicle.Plate;
+            registeredVehicle.Sector = fullVehicle.TypeVehicle;
+
+            // Generar Ticket
+            byte[] pdfBytes = _ticketService.GenerateTicketPdf(registeredVehicle);
+
+            // Armar respuesta
+            var responseDto = _mapper.Map<ManualEntryResponseDto>(registeredVehicle);
+            responseDto.TicketPdfBytes = pdfBytes;
+
+            return responseDto;
+        }
+
+
+        public async Task<VehicleValidationResultDto> ValidateVehiclePlateAsync(VehicleValidationRequestDto request)
+        {
+            try
+            {
+                string normalizedPlate = request.Plate.Trim().ToUpper();
+                var vehicle = await _vehicleBusiness.GetVehicleByPlate(normalizedPlate);
+
+                var result = new VehicleValidationResultDto
+                {
+                    Exists = vehicle != null,
+                    IsBlacklisted = false,
+                    HasActiveEntry = false,
+                    TypeVehicleId = vehicle?.TypeVehicleId,
+                    ClientName = vehicle?.Client,
+                    VehicleColor = vehicle?.Color
+                };
+
+                if (vehicle != null)
+                {
+                    // Verificar lista negra
+                    result.IsBlacklisted = await _blackListBusiness.ExistsAsync(b => b.VehicleId == vehicle.Id);
+
+                    // Verificar entrada activa
+                    result.HasActiveEntry = await _data.GetActiveRegisterByVehicleIdAsync(vehicle.Id) != null;
+
+                    // Mensaje basado en estado
+                    if (result.IsBlacklisted)
+                    {
+                        result.Message = "Vehículo en lista negra. No se permite entrada.";
+                    }
+                    else if (result.HasActiveEntry)
+                    {
+                        result.Message = "Vehículo ya tiene una entrada activa. Puede registrar salida.";
+                    }
+                    else
+                    {
+                        result.Message = "Vehículo registrado. Puede crear nueva entrada.";
+                    }
+                }
+                else
+                {
+                    result.Message = "Vehículo no registrado. Puede crear nueva entrada con datos del cliente.";
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validando placa {Plate}", request.Plate);
+                throw new BusinessException($"Error al validar la placa: {ex.Message}", ex);
+            }
+        }
 
         public async Task<RegisteredVehiclesDto?> GetRegisteredVehicleFullDtoAsync(int id)
         {
