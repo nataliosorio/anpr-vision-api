@@ -211,17 +211,7 @@ namespace Data.Implementations.Operational
                 .ToListAsync();
         }
 
-        //public async Task<RegisteredVehicles?> GetActiveRegisterByVehicleIdAsync(int vehicleId)
-        //{
-        //    return await _context.RegisteredVehicles
-        //        .Include(rv => rv.Slots)
-        //        .Include(rv => rv.Vehicle)
-        //        .Where(rv => rv.VehicleId == vehicleId &&
-        //                     rv.Status == ERegisterStatus.In &&
-        //                     rv.ExitDate == null &&
-        //                     rv.Asset == true)
-        //        .FirstOrDefaultAsync();
-        //}
+       
         public async Task<RegisteredVehicles?> GetActiveRegisterByVehicleIdAsync(int vehicleId)
         {
             return await _context.RegisteredVehicles
@@ -234,5 +224,17 @@ namespace Data.Implementations.Operational
                 .AsNoTracking() // 👈 agregado
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<RegisteredVehicles?> GetFullByIdAsync(int id)
+        {
+            return await _context.RegisteredVehicles
+                .Include(rv => rv.Vehicle)
+                    .ThenInclude(v => v.TypeVehicle)
+                .Include(rv => rv.Slots)
+                    .ThenInclude(s => s.Sectors)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(rv => rv.Id == id);
+        }
+
     }
 }

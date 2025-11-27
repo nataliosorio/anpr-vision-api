@@ -290,25 +290,65 @@ namespace Business.Implementations.Parameter
         }
 
 
+        //public async Task<Slots> AssignAvailableSlotAsync(int typeVehicleId, int parkingId)
+        //{
+        //    List<Sectors> validSectors = await _sectorsBusiness.GetSectorsByVehicleTypeAsync(typeVehicleId, parkingId);
+
+        //    List<Slots> availableSlots = new List<Slots>();
+
+        //    foreach (Sectors sector in validSectors)
+        //    {
+        //        foreach (Slots slot in sector.Slots)
+        //        {
+        //            bool occupied = await _registeredVehicleData.AnyActiveRegisteredVehicleInSlotAsync(slot.Id);
+        //            if (!occupied && slot.IsAvailable)
+        //                availableSlots.Add(slot);
+        //        }
+        //    }
+
+        //    if (availableSlots.Count == 0)
+        //        throw new BusinessException("No hay slots disponibles para este tipo de vehículo.");
+
+        //    Slots assignedSlot = availableSlots[new Random().Next(availableSlots.Count)];
+        //    return assignedSlot;
+        //}
+
         public async Task<Slots> AssignAvailableSlotAsync(int typeVehicleId, int parkingId)
         {
+            // Obtiene los sectores
             List<Sectors> validSectors = await _sectorsBusiness.GetSectorsByVehicleTypeAsync(typeVehicleId, parkingId);
 
             List<Slots> availableSlots = new List<Slots>();
 
             foreach (Sectors sector in validSectors)
             {
-                foreach (Slots slot in sector.Slots)
+                // 1. Validación de seguridad: Ignorar si el SECTOR está eliminado
+                if (sector.IsDeleted == true) continue;
+
+                if (sector.Slots != null)
                 {
-                    bool occupied = await _registeredVehicleData.AnyActiveRegisteredVehicleInSlotAsync(slot.Id);
-                    if (!occupied && slot.IsAvailable)
-                        availableSlots.Add(slot);
+                    foreach (Slots slot in sector.Slots)
+                    {
+                        // 2. Ignorar si el SLOT está eliminado
+                        bool isSlotDeleted = slot.IsDeleted == true;
+                        if (isSlotDeleted) continue; // Si está borrado, pasa al siguiente
+
+                        // 3. Validar si está ocupado en la tabla de registros activos
+                        bool occupied = await _registeredVehicleData.AnyActiveRegisteredVehicleInSlotAsync(slot.Id);
+
+                        // 4. Agregar solo si NO está ocupado Y tiene el flag IsAvailable en true
+                        if (!occupied && slot.IsAvailable)
+                        {
+                            availableSlots.Add(slot);
+                        }
+                    }
                 }
             }
 
             if (availableSlots.Count == 0)
                 throw new BusinessException("No hay slots disponibles para este tipo de vehículo.");
 
+            // Selecciona uno al azar de los válidos
             Slots assignedSlot = availableSlots[new Random().Next(availableSlots.Count)];
             return assignedSlot;
         }

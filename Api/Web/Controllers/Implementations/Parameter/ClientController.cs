@@ -2,10 +2,13 @@
 using Entity.Dtos.Parameter;
 using Entity.Models;
 using Entity.Models.Parameter;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers.Implementations.Parameter
 {
+    [Authorize]
+
     public class ClientController : RepositoryController<Client, ClientDto>
     {
         private readonly IClientBusiness _business;

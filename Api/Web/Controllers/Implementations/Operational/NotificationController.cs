@@ -68,6 +68,34 @@ public class NotificationController : RepositoryController<Notification, Notific
         }
     }
 
+    [HttpPut("by-parking/{parkingId}/read-all")]
+    public async Task<ActionResult> MarkAllAsReadByParking(int parkingId)
+    {
+        try
+        {
+            await _business.MarkAllAsReadByParkingAsync(parkingId);
+
+            var response = new ApiResponse<object>(
+                new { ParkingId = parkingId, Success = true },
+                true,
+                "Todas las notificaciones han sido marcadas como leídas",
+                null
+            );
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            var response = new ApiResponse<object>(
+                null,
+                false,
+                ex.Message,
+                null
+            );
+            return StatusCode(StatusCodes.Status500InternalServerError, response);
+        }
+    }
+
     [HttpPost("create")]
     public async Task<ActionResult<NotificationDto>> CreateAndNotify(NotificationDto dto)
     {
