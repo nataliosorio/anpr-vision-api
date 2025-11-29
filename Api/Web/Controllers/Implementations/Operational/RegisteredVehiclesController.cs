@@ -158,6 +158,25 @@ namespace Web.Controllers.Implementations.Operational
                     new ApiResponse<ManualEntryResponseDto>(null!, false, $"Error al procesar la entrada manual: {ex.Message}", null));
             }
         }
+        [HttpPost("exit/{vehicleId:int}")]
+        public async Task<IActionResult> RegisterVehicleExit([FromRoute] int vehicleId)
+        {
+            try
+            {
+                var result = await _business.RegisterVehicleExitAsync(vehicleId);
+                return Ok(new ApiResponse<RegisteredVehiclesDto>(result, true, "Salida registrada exitosamente.", null));
+            }
+            catch (BusinessException bex)
+            {
+                return BadRequest(new ApiResponse<RegisteredVehiclesDto>(null!, false, bex.Message, null));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new ApiResponse<RegisteredVehiclesDto>(null!, false, $"Error al registrar salida: {ex.Message}", null));
+            }
+        }
+
 
 
 
