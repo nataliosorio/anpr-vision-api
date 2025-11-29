@@ -59,7 +59,10 @@ namespace Business.Implementations.Detection
                     return; // o lanzar excepción si lo prefieres
                 }
                 CameraDto camera = await _camaraBusiness.GetById(cameraId);
-                evt.ParkingId = camera.ParkingId;
+                if(evt.ParkingId == null)
+                {
+                   evt.ParkingId = camera.ParkingId;
+                }
                 //  Notificación inicial
                 await NotifyAsync(evt.ParkingId, "Detección iniciada", $"Se detectó la placa **{evt.Plate}**.", "Info");
 
