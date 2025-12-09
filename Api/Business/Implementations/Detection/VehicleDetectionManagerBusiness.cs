@@ -10,6 +10,7 @@ using Entity.Records;
 using Microsoft.Extensions.Logging;
 using System;
 using Utilities.BackgroundTasks;
+using Utilities.Exceptions;
 using Utilities.Interfaces;
 
 namespace Business.Implementations.Detection
@@ -47,50 +48,86 @@ namespace Business.Implementations.Detection
 
         public async Task ProcessDetectionAsync(PlateDetectedEventRecord evt, CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Procesando detección de placa {Plate}", evt.Plate);
-
-            // Conversión segura de string → int
-            if (!int.TryParse(evt.CameraId, out int cameraId))
+            try
             {
-                _logger.LogWarning("CameraId inválido o no numérico: {CameraId}", evt.CameraId);
-                return; // o lanzar excepción si lo prefieres
+                _logger.LogInformation("Procesando detección de placa {Plate}", evt.Plate);
+
+                // Conversión segura de string → int
+                if (!int.TryParse(evt.CameraId, out int cameraId))
+                {
+                    _logger.LogWarning("CameraId inválido o no numérico: {CameraId}", evt.CameraId);
+                    return; // o lanzar excepción si lo prefieres
+                }
+                CameraDto camera = await _camaraBusiness.GetById(cameraId);
+                if(evt.ParkingId == null)
+                {
+                   evt.ParkingId = camera.ParkingId;
+                }
+                //  Notificación inicial
+                await NotifyAsync(evt.ParkingId, "Detección iniciada", $"Se detectó la placa **{evt.Plate}**.", "Info");
+
+                //  Buscar vehículo existente
+                var vehicle = await _vehicleBusiness.GetVehicleByPlate(evt.Plate);
+
+                if (vehicle == null)
+                {
+                    await HandleNewVehicleAsync(evt);
+                    return;
+                }
+
+                //  Validar lista negra
+                bool isBlacklisted = await _blackListBusiness.ExistsAsync(b => b.VehicleId == vehicle.Id);
+                if (isBlacklisted)
+                {
+                    await NotifyAsync(evt.ParkingId, "🚫 Vehículo en lista negra detectado",
+                        $"Se ha detectado la placa **{evt.Plate}**, registrada en la lista negra. " +
+                        $"No se permitió su registro de entrada. Verifica el historial o toma acción inmediata.",
+                        "Warning");
+                    return;
+                }
+
+                //  Determinar si el vehículo tiene una entrada activa
+                bool hasActiveEntry = await _registeredVehicleBusiness.ExistsAsync(r =>
+                    r.VehicleId == vehicle.Id &&
+                    r.ExitDate == null &&
+                    r.Status == ERegisterStatus.In &&
+                    r.Asset == true);
+
+                if (hasActiveEntry)
+                    await HandleVehicleExitAsync(evt, vehicle);
+                else
+                    await HandleVehicleEntryAsync(evt, vehicle);
             }
-            CameraDto camera = await _camaraBusiness.GetById(cameraId);
-            evt.ParkingId = camera.ParkingId;
-            //  Notificación inicial
-            await NotifyAsync(evt.ParkingId, "Detección iniciada", $"Se detectó la placa **{evt.Plate}**.", "Info");
-
-            //  Buscar vehículo existente
-            var vehicle = await _vehicleBusiness.GetVehicleByPlate(evt.Plate);
-
-            if (vehicle == null)
+            catch (BusinessException ex)
             {
-                await HandleNewVehicleAsync(evt);
-                return;
-            }
+                // Aquí caen, por ejemplo:
+                // - "No hay slots disponibles para este tipo de vehículo."
+                _logger.LogWarning(ex, "Error de negocio procesando detección de placa {Plate}", evt.Plate);
 
-            //  Validar lista negra
-            bool isBlacklisted = await _blackListBusiness.ExistsAsync(b => b.VehicleId == vehicle.Id);
-            if (isBlacklisted)
+                await NotifyAsync(
+                    evt.ParkingId,
+                    " No se pudo completar el registro",
+                    // Puedes usar el mensaje de la excepción o uno más específico
+                    ex.Message,
+                    "Warning"
+                );
+
+                // NO re-lanzamos para que el consumer de Kafka no se caiga por esto
+            }
+            catch (Exception ex)
             {
-                await NotifyAsync(evt.ParkingId, "🚫 Vehículo en lista negra detectado",
-                    $"Se ha detectado la placa **{evt.Plate}**, registrada en la lista negra. " +
-                    $"No se permitió su registro de entrada. Verifica el historial o toma acción inmediata.",
-                    "Warning");
-                return;
+                _logger.LogError(ex, "Error inesperado procesando detección de placa {Plate}", evt.Plate);
+
+                string msg =
+                    $"Ocurrió un error inesperado al procesar la detección de la placa **{evt.Plate}**. ";
+
+                await NotifyAsync(
+                    evt.ParkingId,
+                    "❌ Error procesando detección",
+                    msg,
+                    "Error"
+                );
             }
-
-            //  Determinar si el vehículo tiene una entrada activa
-            bool hasActiveEntry = await _registeredVehicleBusiness.ExistsAsync(r =>
-                r.VehicleId == vehicle.Id &&
-                r.ExitDate == null &&
-                r.Status == ERegisterStatus.In &&
-                r.Asset == true);
-
-            if (hasActiveEntry)
-                await HandleVehicleExitAsync(evt, vehicle);
-            else
-                await HandleVehicleEntryAsync(evt, vehicle);
         }
 
         // ============================================================
