@@ -61,7 +61,7 @@ namespace Data.Implementations.Security
 
         public override async Task<RolParkingUser> GetById(int id)
         {
-            await AuditAsync("GetById", id);
+            //await AuditAsync("GetById", id);
             return await _context.RolParkingUsers
                 .Include(ru => ru.User)
                 .Include(ru => ru.Rol)
